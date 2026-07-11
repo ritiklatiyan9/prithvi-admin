@@ -1,0 +1,169 @@
+import { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { ImageUpload } from "@/components/shared/ImageUpload";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { usersService } from "@/services/users.service";
+import { authService } from "@/services/auth.service";
+import { apiErrorMessage } from "@/services/api-client";
+import { useAuthStore } from "@/store/auth.store";
+import { useThemeStore } from "@/store/theme.store";
+
+const profileSchema = z.object({
+  name: z.string().min(1, "Required").max(120),
+  avatarUrl: z.string().nullable(),
+});
+
+type ProfileValues = z.infer<typeof profileSchema>;
+
+export const SettingsPage = (): JSX.Element => {
+  const navigate = useNavigate();
+  const { user, setUser, clear } = useAuthStore();
+  const { theme, setTheme } = useThemeStore();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<ProfileValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { name: user?.name ?? "", avatarUrl: user?.avatarUrl ?? null },
+  });
+
+  useEffect(() => {
+    reset({ name: user?.name ?? "", avatarUrl: user?.avatarUrl ?? null });
+  }, [user, reset]);
+
+  const saveProfile = useMutation({
+    mutationFn: (values: ProfileValues) =>
+      usersService.updateMe({ name: values.name, avatarUrl: values.avatarUrl }),
+    onSuccess: (updated) => {
+      setUser(updated);
+      toast.success("Profile updated");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
+  const logoutAll = useMutation({
+    mutationFn: authService.logoutAll,
+    onSuccess: () => {
+      clear();
+      navigate("/login", { replace: true });
+      toast.success("Signed out on all devices");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
+  return (
+    <div className="max-w-2xl">
+      <PageHeader title="Settings" description="Your profile, appearance, and sessions." />
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>How you appear across RewardHub.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={handleSubmit((values) => saveProfile.mutate(values))}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <Label>Avatar</Label>
+                <Controller
+                  control={control}
+                  name="avatarUrl"
+                  render={({ field }) => (
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Upload avatar"
+                    />
+                  )}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Display name</Label>
+                <Input id="name" {...register("name")} />
+                {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input value={user?.email ?? ""} disabled />
+                <p className="text-xs text-muted-foreground">
+                  Managed by your Google account.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  Role: <Badge variant="info">{user?.role}</Badge>
+                </div>
+                <Button type="submit" disabled={!isDirty || saveProfile.isPending}>
+                  {saveProfile.isPending ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>Theme preference for this browser.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Dark mode</p>
+                <p className="text-sm text-muted-foreground">
+                  Switch between light and dark themes.
+                </p>
+              </div>
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sessions</CardTitle>
+            <CardDescription>Sign out of RewardHub everywhere.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Revokes every refresh token issued to your account, including this session.
+              </p>
+              <Button
+                variant="destructive"
+                onClick={() => logoutAll.mutate()}
+                disabled={logoutAll.isPending}
+              >
+                {logoutAll.isPending ? "Working…" : "Sign out everywhere"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};

@@ -2,18 +2,13 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChartBarIcon, CursorArrowRaysIcon } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { StatCard } from "@/components/shared/StatCard";
 import { EventsBarChart } from "@/components/shared/EventsBarChart";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -36,39 +31,87 @@ type RangeValue = (typeof RANGES)[number]["value"];
 
 export const AnalyticsPage = (): JSX.Element => {
   const [range, setRange] = useState<RangeValue>("30");
+  const [dates, setDates] = useState<DateRangeValue>({ from: "", to: "" });
+  const [search, setSearch] = useState("");
+
+  // A custom date range (API-supported from/to) overrides the preset range.
+  const customDates = dates.from !== "" || dates.to !== "";
+  const params = customDates
+    ? {
+        from: dates.from ? new Date(dates.from).toISOString() : undefined,
+        to: dates.to ? new Date(`${dates.to}T23:59:59.999`).toISOString() : undefined,
+      }
+    : range === "all"
+      ? {}
+      : { from: new Date(Date.now() - Number(range) * 86_400_000).toISOString() };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["analytics", "summary", range],
-    queryFn: () =>
-      analyticsService.summary(
-        range === "all"
-          ? {}
-          : { from: new Date(Date.now() - Number(range) * 86_400_000).toISOString() },
-      ),
+    queryKey: ["analytics", "summary", range, dates],
+    queryFn: () => analyticsService.summary(params),
   });
 
   const topEvent = data?.byName[0];
 
+  // The summary endpoint can't filter by event name — filter the loaded rows client-side.
+  const term = search.trim().toLowerCase();
+  const events = (data?.byName ?? []).filter((event) =>
+    event.name.toLowerCase().includes(term),
+  );
+  const totalEvents = data?.totalEvents ?? 0;
+
+  const exportColumns: ExportColumn[] = [
+    { key: "name", label: "Event name" },
+    { key: "count", label: "Count" },
+    {
+      key: "count",
+      label: "Share %",
+      format: (v) => (totalEvents > 0 ? (((v as number) / totalEvents) * 100).toFixed(1) : ""),
+    },
+  ];
+
+  const filterSummary =
+    [
+      customDates
+        ? `Dates: ${dates.from || "…"} – ${dates.to || "…"}`
+        : RANGES.find((option) => option.value === range)?.label ?? "",
+      term ? `Search: ${term}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ") || undefined;
+
   return (
     <div>
-      <PageHeader
-        title="Analytics"
-        description="Event volume tracked across the platform."
-        actions={
-          <Select value={range} onValueChange={(value) => setRange(value as RangeValue)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RANGES.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
-      />
+      <PageHeader title="Analytics" description="Event volume tracked across the platform." />
+
+      <FiltersBar
+        search={{ value: search, onChange: setSearch, placeholder: "Search event names…" }}
+        selects={[
+          {
+            key: "range",
+            value: range,
+            onChange: (value) => setRange(value as RangeValue),
+            options: [...RANGES],
+            placeholder: "Range",
+            className: "sm:w-40",
+          },
+        ]}
+        dateRange={{ value: dates, onChange: setDates }}
+        onClearAll={() => {
+          setSearch("");
+          setRange("30");
+          setDates({ from: "", to: "" });
+        }}
+      >
+        <div className="ml-auto">
+          <ExportButton
+            rows={events as unknown as Record<string, unknown>[]}
+            columns={exportColumns}
+            fileName="analytics-events"
+            title="Analytics — events by name"
+            filterSummary={filterSummary}
+          />
+        </div>
+      </FiltersBar>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
@@ -95,7 +138,7 @@ export const AnalyticsPage = (): JSX.Element => {
           {isLoading ? (
             <TableSkeleton rows={4} />
           ) : (
-            <EventsBarChart data={(data?.byName ?? []).slice(0, 12)} height={320} />
+            <EventsBarChart data={events.slice(0, 12)} height={320} />
           )}
         </CardContent>
       </Card>
@@ -107,7 +150,7 @@ export const AnalyticsPage = (): JSX.Element => {
         </CardHeader>
         {isLoading ? (
           <TableSkeleton rows={4} />
-        ) : !data || data.byName.length === 0 ? (
+        ) : events.length === 0 ? (
           <EmptyState title="No events tracked" description="Events appear once clients call the track endpoint." />
         ) : (
           <Table>
@@ -119,15 +162,15 @@ export const AnalyticsPage = (): JSX.Element => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.byName.map((event) => (
+              {events.map((event) => (
                 <TableRow key={event.name}>
                   <TableCell className="font-mono text-xs">{event.name}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatNumber(event.count)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {data.totalEvents > 0
-                      ? `${((event.count / data.totalEvents) * 100).toFixed(1)}%`
+                    {totalEvents > 0
+                      ? `${((event.count / totalEvents) * 100).toFixed(1)}%`
                       : "—"}
                   </TableCell>
                 </TableRow>

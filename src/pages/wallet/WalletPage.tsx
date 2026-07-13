@@ -4,6 +4,8 @@ import { ArrowDownLeftIcon, ArrowUpRightIcon, BanknotesIcon, WalletIcon } from "
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
 import { Pagination } from "@/components/shared/Pagination";
+import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +20,25 @@ import {
 } from "@/components/ui/table";
 import { walletService } from "@/services/wallet.service";
 import { adminService } from "@/services/admin.service";
-import { formatCurrency, formatDateTime } from "@/utils/format";
+import { Coins } from "@/components/shared/Coins";
+import { formatDateTime } from "@/utils/format";
 
 const PAGE_SIZE = 10;
+type TypeFilter = "ALL" | "CREDIT" | "DEBIT";
+
+const exportColumns: ExportColumn[] = [
+  { key: "type", label: "Type" },
+  { key: "description", label: "Description" },
+  { key: "reference", label: "Reference" },
+  { key: "amount", label: "Coins" },
+  { key: "balanceAfter", label: "Balance after" },
+  { key: "createdAt", label: "Date", format: (v) => formatDateTime(v as string) },
+];
 
 export const WalletPage = (): JSX.Element => {
   const [page, setPage] = useState(1);
+  const [type, setType] = useState<TypeFilter>("ALL");
+  const [range, setRange] = useState<DateRangeValue>({ from: "", to: "" });
 
   const wallet = useQuery({ queryKey: ["wallet", "me"], queryFn: walletService.myWallet });
   const stats = useQuery({ queryKey: ["admin", "stats"], queryFn: adminService.stats });
@@ -31,6 +46,23 @@ export const WalletPage = (): JSX.Element => {
     queryKey: ["wallet", "transactions", page],
     queryFn: () => walletService.transactions({ page, limit: PAGE_SIZE }),
   });
+
+  // ponytail: API only supports page/limit — type/date filters apply client-side
+  // to the currently loaded page.
+  const rows = (transactions.data?.items ?? []).filter(
+    (tx) =>
+      (type === "ALL" || tx.type === type) &&
+      (!range.from || tx.createdAt.slice(0, 10) >= range.from) &&
+      (!range.to || tx.createdAt.slice(0, 10) <= range.to),
+  );
+
+  const filterSummary =
+    [
+      type !== "ALL" && `Type: ${type}`,
+      (range.from || range.to) && `Date: ${range.from || "…"} – ${range.to || "…"}`,
+    ]
+      .filter(Boolean)
+      .join(" · ") || undefined;
 
   return (
     <div>
@@ -42,30 +74,62 @@ export const WalletPage = (): JSX.Element => {
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           label="My wallet balance"
-          value={wallet.data ? formatCurrency(wallet.data.balance) : "—"}
+          value={wallet.data ? <Coins value={wallet.data.balance} /> : "—"}
           icon={WalletIcon}
           loading={wallet.isLoading}
         />
         <StatCard
           label="Platform wallet liability"
-          value={stats.data ? formatCurrency(stats.data.totalWalletBalance) : "—"}
+          value={stats.data ? <Coins value={stats.data.totalWalletBalance} /> : "—"}
           icon={BanknotesIcon}
           hint="Sum of all user balances"
           loading={stats.isLoading}
         />
       </div>
 
-      <Card className="mt-6">
+      <FiltersBar
+        className="mt-6"
+        selects={[
+          {
+            key: "type",
+            value: type,
+            onChange: (value) => setType(value as TypeFilter),
+            placeholder: "Type",
+            options: [
+              { value: "ALL", label: "All types" },
+              { value: "CREDIT", label: "Credit" },
+              { value: "DEBIT", label: "Debit" },
+            ],
+          },
+        ]}
+        dateRange={{ value: range, onChange: setRange }}
+        onClearAll={() => {
+          setType("ALL");
+          setRange({ from: "", to: "" });
+        }}
+      >
+        <ExportButton
+          className="ml-auto"
+          rows={rows as unknown as Record<string, unknown>[]}
+          columns={exportColumns}
+          fileName="wallet-transactions"
+          title="Wallet transactions"
+          page={page}
+          filterSummary={filterSummary}
+        />
+      </FiltersBar>
+
+      <Card>
         <CardHeader>
           <CardTitle>Transactions</CardTitle>
           <CardDescription>Credits and debits on your wallet</CardDescription>
         </CardHeader>
         {transactions.isLoading ? (
           <TableSkeleton />
-        ) : !transactions.data || transactions.data.items.length === 0 ? (
+        ) : rows.length === 0 ? (
           <EmptyState
-            title="No transactions yet"
-            description="Wallet activity will appear here."
+            title="No transactions found"
+            description="Wallet activity matching your filters will appear here."
           />
         ) : (
           <Table>
@@ -73,13 +137,13 @@ export const WalletPage = (): JSX.Element => {
               <TableRow>
                 <TableHead>Type</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Coins</TableHead>
                 <TableHead className="hidden text-right sm:table-cell">Balance after</TableHead>
                 <TableHead className="hidden text-right md:table-cell">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.data.items.map((tx) => (
+              {rows.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell>
                     <Badge variant={tx.type === "CREDIT" ? "success" : "destructive"}>
@@ -105,10 +169,10 @@ export const WalletPage = (): JSX.Element => {
                     }`}
                   >
                     {tx.type === "CREDIT" ? "+" : "−"}
-                    {formatCurrency(tx.amount)}
+                    <Coins value={tx.amount} />
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums text-muted-foreground sm:table-cell">
-                    {formatCurrency(tx.balanceAfter)}
+                    <Coins value={tx.balanceAfter} />
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap text-right text-xs text-muted-foreground md:table-cell">
                     {formatDateTime(tx.createdAt)}

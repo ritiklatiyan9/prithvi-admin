@@ -1,11 +1,9 @@
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
+// Coins: strip trailing zeros (1.20 -> "1.2", 100.00 -> "100"), keep thousands grouping.
+const coinsFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 
-export const formatCurrency = (value: number): string => currencyFormatter.format(value);
+export const formatCoins = (value: number): string => coinsFormatter.format(value);
 
 export const formatNumber = (value: number): string => numberFormatter.format(value);
 

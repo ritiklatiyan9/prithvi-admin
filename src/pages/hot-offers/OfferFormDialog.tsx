@@ -47,6 +47,8 @@ interface OfferFormDialogProps {
   categories: OfferCategory[];
   /** null = create; otherwise the card row — full details are fetched here. */
   offer: HotOffer | null;
+  /** App Offers module: force isProduct=true and surface the brand logo first. */
+  lockProduct?: boolean;
 }
 
 const linesToList = (value: string): string[] =>
@@ -60,6 +62,7 @@ export const OfferFormDialog = ({
   onOpenChange,
   categories,
   offer,
+  lockProduct = false,
 }: OfferFormDialogProps): JSX.Element => {
   const queryClient = useQueryClient();
 
@@ -86,6 +89,8 @@ export const OfferFormDialog = ({
   const [bannerUrl, setBannerUrl] = useState("");
   const [featured, setFeatured] = useState(false);
   const [trending, setTrending] = useState(false);
+  const [isProduct, setIsProduct] = useState(false);
+  const [brandLogoUrl, setBrandLogoUrl] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUsers, setMaxUsers] = useState("");
   const [maxRewards, setMaxRewards] = useState("");
@@ -125,13 +130,15 @@ export const OfferFormDialog = ({
     setBannerUrl(d?.bannerUrl ?? "");
     setFeatured(d?.featured ?? false);
     setTrending(d?.trending ?? false);
+    setIsProduct(lockProduct || (d?.isProduct ?? false));
+    setBrandLogoUrl(d?.brandLogoUrl ?? "");
     setExpiresAt(toLocalInput(d?.expiresAt ?? null));
     setMaxUsers(d?.maxUsers != null ? String(d.maxUsers) : "");
     setMaxRewards(d?.maxRewards != null ? String(d.maxRewards) : "");
     setDailyLimit(d?.dailyLimit != null ? String(d.dailyLimit) : "");
     setPriority(d?.priority ?? 0);
     setStatus(d?.status ?? "DRAFT");
-  }, [open, offer, categories, details.data]);
+  }, [open, offer, categories, details.data, lockProduct]);
 
   const numOrNull = (value: string): number | null =>
     value.trim() === "" ? null : Number(value);
@@ -162,6 +169,8 @@ export const OfferFormDialog = ({
         bannerUrl: bannerUrl.trim() || null,
         featured,
         trending,
+        isProduct: lockProduct || isProduct,
+        brandLogoUrl: brandLogoUrl.trim() || null,
         expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
         maxUsers: numOrNull(maxUsers),
         maxRewards: numOrNull(maxRewards),
@@ -268,10 +277,27 @@ export const OfferFormDialog = ({
             </div>
 
             <p className={sectionTitle}>Media</p>
+            {/* lockProduct: brand logo leads — it's the hero asset of app/brand offers */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {lockProduct && (
+                <div className="sm:col-span-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                  <ImageUrlField label="Brand logo" value={brandLogoUrl} onChange={setBrandLogoUrl} />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Shown as the brand chip on home cards and the carousel.
+                  </p>
+                </div>
+              )}
               <ImageUrlField label="Logo" value={logoUrl} onChange={setLogoUrl} />
               <ImageUrlField label="Thumbnail (card)" value={thumbnailUrl} onChange={setThumbnailUrl} />
               <ImageUrlField label="Banner (details)" value={bannerUrl} onChange={setBannerUrl} />
+              {!lockProduct && (
+                <div>
+                  <ImageUrlField label="Brand logo" value={brandLogoUrl} onChange={setBrandLogoUrl} />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Product offers render in the home carousel with this logo.
+                  </p>
+                </div>
+              )}
             </div>
 
             <p className={sectionTitle}>Content lists (one item per line)</p>
@@ -323,7 +349,7 @@ export const OfferFormDialog = ({
             <p className={sectionTitle}>Reward & store</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="space-y-1.5">
-                <Label htmlFor="of-reward">Reward amount</Label>
+                <Label htmlFor="of-reward">Reward coins (shown on card)</Label>
                 <Input
                   id="of-reward"
                   type="number"
@@ -334,7 +360,7 @@ export const OfferFormDialog = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="of-coins">Reward coins</Label>
+                <Label htmlFor="of-coins">Reward coins (credited)</Label>
                 <Input
                   id="of-coins"
                   type="number"
@@ -349,7 +375,7 @@ export const OfferFormDialog = ({
                   id="of-reward-label"
                   value={rewardLabel}
                   onChange={(e) => setRewardLabel(e.target.value)}
-                  placeholder="50 + 500 XP"
+                  placeholder="50 coins"
                 />
               </div>
               <div className="space-y-1.5">
@@ -488,6 +514,20 @@ export const OfferFormDialog = ({
                   </Label>
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="of-product"
+                checked={isProduct}
+                onCheckedChange={setIsProduct}
+                disabled={lockProduct}
+              />
+              <Label htmlFor="of-product" className="cursor-pointer">
+                Product offer — featured on app home
+                {lockProduct && (
+                  <span className="ml-1 text-muted-foreground">(always on for App Offers)</span>
+                )}
+              </Label>
             </div>
 
             <DialogFooter>

@@ -10,7 +10,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
-import { SearchInput } from "@/components/shared/SearchInput";
+import { FiltersBar } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -26,13 +27,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -43,7 +37,6 @@ import {
 import { adminService } from "@/services/admin.service";
 import { apiErrorMessage } from "@/services/api-client";
 import { useAuthStore } from "@/store/auth.store";
-import { useDebounce } from "@/hooks/useDebounce";
 import { formatDate } from "@/utils/format";
 import type { Role, User } from "@/types/user";
 
@@ -56,6 +49,14 @@ const roleBadge: Record<Role, "secondary" | "info" | "default"> = {
   SUPER_ADMIN: "default",
 };
 
+const exportColumns: ExportColumn[] = [
+  { key: "name", label: "Name" },
+  { key: "email", label: "Email" },
+  { key: "role", label: "Role" },
+  { key: "isActive", label: "Status", format: (v) => (v ? "Active" : "Deactivated") },
+  { key: "createdAt", label: "Joined", format: (v) => formatDate(v as string) },
+];
+
 export const UsersPage = (): JSX.Element => {
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((state) => state.user);
@@ -64,15 +65,14 @@ export const UsersPage = (): JSX.Element => {
   const [role, setRole] = useState<RoleFilter>("ALL");
   const [statusTarget, setStatusTarget] = useState<User | null>(null);
 
-  const debouncedSearch = useDebounce(search);
-
+  // FiltersBar debounces the search input; `search` already holds the settled value.
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "users", { page, search: debouncedSearch, role }],
+    queryKey: ["admin", "users", { page, search, role }],
     queryFn: () =>
       adminService.listUsers({
         page,
         limit: PAGE_SIZE,
-        search: debouncedSearch.trim() || undefined,
+        search: search.trim() || undefined,
         role: role === "ALL" ? undefined : role,
       }),
   });
@@ -108,34 +108,53 @@ export const UsersPage = (): JSX.Element => {
     <div>
       <PageHeader title="Users" description="Manage accounts, roles, and access." />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        <SearchInput
-          value={search}
-          onChange={(value) => {
+      <FiltersBar
+        search={{
+          value: search,
+          onChange: (value) => {
             setSearch(value);
             setPage(1);
-          }}
-          placeholder="Search name or email…"
-          className="sm:w-72"
+          },
+          placeholder: "Search name or email…",
+          className: "sm:w-72",
+        }}
+        selects={[
+          {
+            key: "role",
+            value: role,
+            onChange: (value) => {
+              setRole(value as RoleFilter);
+              setPage(1);
+            },
+            placeholder: "Role",
+            options: [
+              { value: "ALL", label: "All roles" },
+              { value: "USER", label: "User" },
+              { value: "ADMIN", label: "Admin" },
+              { value: "SUPER_ADMIN", label: "Super admin" },
+            ],
+          },
+        ]}
+        onClearAll={() => {
+          setSearch("");
+          setRole("ALL");
+          setPage(1);
+        }}
+      >
+        <ExportButton
+          className="ml-auto"
+          rows={(data?.items ?? []) as unknown as Record<string, unknown>[]}
+          columns={exportColumns}
+          fileName="users"
+          title="Users"
+          page={page}
+          filterSummary={
+            [search.trim() && `Search: ${search.trim()}`, role !== "ALL" && `Role: ${role}`]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
         />
-        <Select
-          value={role}
-          onValueChange={(value) => {
-            setRole(value as RoleFilter);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="sm:w-44">
-            <SelectValue placeholder="Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All roles</SelectItem>
-            <SelectItem value="USER">User</SelectItem>
-            <SelectItem value="ADMIN">Admin</SelectItem>
-            <SelectItem value="SUPER_ADMIN">Super admin</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      </FiltersBar>
 
       <Card>
         {isLoading ? (

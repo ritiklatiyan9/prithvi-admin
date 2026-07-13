@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BanknotesIcon,
@@ -7,6 +8,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
+import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { EventsBarChart } from "@/components/shared/EventsBarChart";
 import { ClaimStatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -23,16 +26,26 @@ import {
 import { adminService } from "@/services/admin.service";
 import { analyticsService } from "@/services/analytics.service";
 import { claimsService } from "@/services/claims.service";
-import { formatCurrency, formatDateTime, formatNumber } from "@/utils/format";
+import { Coins } from "@/components/shared/Coins";
+import { formatDateTime, formatNumber } from "@/utils/format";
+
+const defaultFrom = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+
+const eventExportColumns: ExportColumn[] = [
+  { key: "name", label: "Event" },
+  { key: "count", label: "Count" },
+];
 
 export const DashboardPage = (): JSX.Element => {
   const stats = useQuery({ queryKey: ["admin", "stats"], queryFn: adminService.stats });
+  const [range, setRange] = useState<DateRangeValue>({ from: defaultFrom, to: "" });
 
   const events = useQuery({
-    queryKey: ["analytics", "summary", "30d"],
+    queryKey: ["analytics", "summary", range],
     queryFn: () =>
       analyticsService.summary({
-        from: new Date(Date.now() - 30 * 86_400_000).toISOString(),
+        from: range.from ? `${range.from}T00:00:00.000Z` : undefined,
+        to: range.to ? `${range.to}T23:59:59.999Z` : undefined,
       }),
   });
 
@@ -44,6 +57,20 @@ export const DashboardPage = (): JSX.Element => {
   return (
     <div>
       <PageHeader title="Dashboard" description="Platform overview at a glance." />
+
+      <FiltersBar
+        dateRange={{ value: range, onChange: setRange }}
+        onClearAll={() => setRange({ from: defaultFrom, to: "" })}
+      >
+        <ExportButton
+          className="ml-auto"
+          rows={(events.data?.byName ?? []) as unknown as Record<string, unknown>[]}
+          columns={eventExportColumns}
+          fileName="dashboard-events"
+          title="Analytics events"
+          filterSummary={`Range: ${range.from || "…"} – ${range.to || "today"}`}
+        />
+      </FiltersBar>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -67,7 +94,7 @@ export const DashboardPage = (): JSX.Element => {
         />
         <StatCard
           label="Wallet liability"
-          value={stats.data ? formatCurrency(stats.data.totalWalletBalance) : "—"}
+          value={stats.data ? <Coins value={stats.data.totalWalletBalance} /> : "—"}
           icon={BanknotesIcon}
           hint="Total user balances"
           loading={stats.isLoading}
@@ -77,8 +104,8 @@ export const DashboardPage = (): JSX.Element => {
       <div className="mt-6 grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Events — last 30 days</CardTitle>
-            <CardDescription>Tracked analytics events by name</CardDescription>
+            <CardTitle>Events</CardTitle>
+            <CardDescription>Tracked analytics events by name in the selected range</CardDescription>
           </CardHeader>
           <CardContent>
             {events.isLoading ? (

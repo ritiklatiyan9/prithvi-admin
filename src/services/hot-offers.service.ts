@@ -74,6 +74,8 @@ export const hotOffersService = {
     search?: string;
     category?: string;
     status?: ContentStatus;
+    /** true = product offers only, false = feedback offers only, omitted = all. */
+    product?: boolean;
   }): Promise<Paginated<HotOffer>> => {
     const { data } = await apiClient.get<ApiSuccess<HotOffer[]>>(`${BASE}/offers`, { params });
     return { items: data.data, meta: data.meta! };
@@ -107,6 +109,8 @@ export const hotOffersService = {
     page: number;
     limit: number;
     status?: SubmissionStatus;
+    /** Filter by the submission's offer.isProduct; omitted = all. */
+    product?: boolean;
   }): Promise<Paginated<OfferSubmission>> => {
     const { data } = await apiClient.get<ApiSuccess<OfferSubmission[]>>(`${BASE}/submissions`, {
       params,

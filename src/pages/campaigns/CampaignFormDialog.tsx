@@ -130,28 +130,28 @@ export const CampaignFormDialog = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="rewardAmount">Reward amount</Label>
+              <Label htmlFor="rewardAmount">Reward coins</Label>
               <Input
                 id="rewardAmount"
                 type="number"
                 step="0.01"
                 min="0"
                 {...register("rewardAmount")}
-                placeholder="10.00"
+                placeholder="10"
               />
               {errors.rewardAmount && (
                 <p className="text-xs text-red-500">{errors.rewardAmount.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="budget">Budget (optional)</Label>
+              <Label htmlFor="budget">Budget coins (optional)</Label>
               <Input
                 id="budget"
                 type="number"
                 step="0.01"
                 min="0"
                 {...register("budget")}
-                placeholder="5000.00"
+                placeholder="5000"
               />
               {errors.budget && <p className="text-xs text-red-500">{errors.budget.message}</p>}
             </div>

@@ -11,7 +11,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
-import { SearchInput } from "@/components/shared/SearchInput";
+import { FiltersBar } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { CampaignStatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
@@ -24,13 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -40,12 +34,32 @@ import {
 } from "@/components/ui/table";
 import { campaignsService } from "@/services/campaigns.service";
 import { apiErrorMessage } from "@/services/api-client";
-import { formatCurrency, formatDate } from "@/utils/format";
+import { Coins } from "@/components/shared/Coins";
+import { formatDate } from "@/utils/format";
 import type { Campaign, CampaignStatus } from "@/types/domain";
 import { CampaignFormDialog } from "./CampaignFormDialog";
 
 const PAGE_SIZE = 10;
 type StatusFilter = CampaignStatus | "ALL";
+
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All statuses" },
+  { value: "DRAFT", label: "Draft" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "PAUSED", label: "Paused" },
+  { value: "ENDED", label: "Ended" },
+];
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { key: "title", label: "Title" },
+  { key: "description", label: "Description" },
+  { key: "status", label: "Status" },
+  { key: "rewardAmount", label: "Reward coins" },
+  { key: "budget", label: "Budget coins" },
+  { key: "startsAt", label: "Starts", format: (v) => formatDate(v as string | null) },
+  { key: "endsAt", label: "Ends", format: (v) => formatDate(v as string | null) },
+  { key: "createdAt", label: "Created", format: (v) => formatDate(v as string | null) },
+];
 
 export const CampaignsPage = (): JSX.Element => {
   const queryClient = useQueryClient();
@@ -106,32 +120,42 @@ export const CampaignsPage = (): JSX.Element => {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search by title…"
-          className="sm:w-72"
+      <FiltersBar
+        search={{ value: search, onChange: setSearch, placeholder: "Search by title…" }}
+        selects={[
+          {
+            key: "status",
+            value: status,
+            onChange: (value) => {
+              setStatus(value as StatusFilter);
+              setPage(1);
+            },
+            options: STATUS_OPTIONS,
+            placeholder: "Status",
+          },
+        ]}
+        onClearAll={() => {
+          setSearch("");
+          setStatus("ALL");
+          setPage(1);
+        }}
+      >
+        <ExportButton
+          rows={visible as unknown as Record<string, unknown>[]}
+          columns={EXPORT_COLUMNS}
+          fileName="campaigns"
+          title="Campaigns"
+          page={page}
+          filterSummary={
+            [
+              status !== "ALL" ? `Status: ${status}` : "",
+              search.trim() ? `Search: ${search.trim()}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
         />
-        <Select
-          value={status}
-          onValueChange={(value) => {
-            setStatus(value as StatusFilter);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="sm:w-44">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All statuses</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="PAUSED">Paused</SelectItem>
-            <SelectItem value="ENDED">Ended</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      </FiltersBar>
 
       <Card>
         {isLoading ? (
@@ -166,10 +190,10 @@ export const CampaignsPage = (): JSX.Element => {
                     <CampaignStatusBadge status={campaign.status} />
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {formatCurrency(campaign.rewardAmount)}
+                    <Coins value={campaign.rewardAmount} />
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
-                    {campaign.budget !== null ? formatCurrency(campaign.budget) : "—"}
+                    {campaign.budget !== null ? <Coins value={campaign.budget} /> : "—"}
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
                     {formatDate(campaign.startsAt)} → {formatDate(campaign.endsAt)}

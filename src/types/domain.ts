@@ -142,6 +142,7 @@ export interface FeedbackPage {
   categoryId: string;
   categorySlug: string;
   categoryTitle: string;
+  categoryImageUrl: string | null;
   bannerUrl: string | null;
   title: string;
   description: string;
@@ -183,6 +184,8 @@ export interface HotOffer {
   rating: number | null;
   featured: boolean;
   trending: boolean;
+  isProduct: boolean;
+  brandLogoUrl: string | null;
   expiresAt: string | null;
   priority: number;
   status: ContentStatus;
@@ -230,6 +233,8 @@ export interface HotOfferInput {
   playStoreUrl: string;
   featured: boolean;
   trending: boolean;
+  isProduct?: boolean;
+  brandLogoUrl?: string | null;
   expiresAt?: string | null;
   maxUsers?: number | null;
   maxRewards?: number | null;
@@ -252,6 +257,8 @@ export interface OfferSubmission {
   offerSlug: string;
   offerThumbnailUrl: string | null;
   screenshotUrl: string;
+  /** All proof images, newest first (multi-screenshot submissions). */
+  screenshotUrls: string[];
   note: string | null;
   status: SubmissionStatus;
   reviewNote: string | null;

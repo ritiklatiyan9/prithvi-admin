@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* light theme: white surfaces, near-black text, accent darkened to #00A34A */
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -10,58 +11,61 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 147 100% 32%; /* #00A34A */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 147 100% 32%; /* ponytail: same as primary -> gradient degenerates to solid in light */
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215 16% 47%; /* #64748B */
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%; /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 147 100% 32%;
     --radius: 0.5rem;
 
-    /* charts (validated: dataviz palette, light surface) */
-    --chart-series-1: #2a78d6;
-    --chart-grid: #e1e0d9;
-    --chart-axis: #898781;
-    --status-good: #0ca30c;
-    --status-warning: #fab219;
-    --status-critical: #d03b3b;
+    /* charts */
+    --chart-series-1: #00a34a;
+    --chart-grid: #e2e8f0;
+    --chart-axis: #64748b;
+    --status-good: #00a34a;
+    --status-warning: #ca8a04;
+    --status-critical: #dc2626;
   }
 
+  /* dark graphite theme (default): bg #0A0E17->#10151F, surface #151C2C, surfaceAlt #1C2438 */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 6.5%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 6.5%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 222 39% 6.5%; /* #0A0E17 */
+    --foreground: 210 40% 96%; /* #F1F5F9 */
+    --card: 222 35% 13%; /* #151C2C */
+    --card-foreground: 210 40% 96%;
+    --popover: 222 35% 13%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 121 100% 51%; /* #05FF08 neon green */
+    --primary-foreground: 222 39% 6.5%;
+    --primary-glow: 145 100% 39%; /* #00C853 gradient partner */
+    --secondary: 223 33% 16.5%; /* #1C2438 surfaceAlt */
+    --secondary-foreground: 210 40% 96%;
+    --muted: 223 33% 16.5%;
+    --muted-foreground: 215 20% 65%; /* #94A3B8 */
+    --accent: 223 33% 16.5%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 91% 71%; /* #F87171 */
+    --destructive-foreground: 222 39% 6.5%;
+    --border: 215 20% 65% / 0.14; /* hairline rgba(148,163,184,.14) */
+    --input: 215 20% 65% / 0.25;
+    --ring: 121 100% 51%;
 
-    /* charts (validated: dataviz palette, dark surface) */
-    --chart-series-1: #3987e5;
-    --chart-grid: #2c2c2a;
-    --chart-axis: #898781;
-    --status-good: #0ca30c;
-    --status-warning: #fab219;
-    --status-critical: #d03b3b;
+    /* charts */
+    --chart-series-1: #05ff08;
+    --chart-grid: #272f40; /* hairline over #151C2C surface */
+    --chart-axis: #64748b;
+    --status-good: #2dd4bf;
+    --status-warning: #eab308;
+    --status-critical: #f87171;
   }
 }
 
@@ -71,6 +75,10 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+  .dark body {
+    background-image: linear-gradient(160deg, #0a0e17, #10151f);
+    background-attachment: fixed;
   }
 }
 

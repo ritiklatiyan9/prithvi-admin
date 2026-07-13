@@ -68,7 +68,7 @@ export const ImageUrlField = ({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/gif"
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];

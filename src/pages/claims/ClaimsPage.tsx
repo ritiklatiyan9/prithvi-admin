@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
+import { FiltersBar } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { ClaimStatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
@@ -19,13 +21,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -35,16 +30,36 @@ import {
 } from "@/components/ui/table";
 import { claimsService } from "@/services/claims.service";
 import { apiErrorMessage } from "@/services/api-client";
-import { formatCurrency, formatDateTime } from "@/utils/format";
+import { Coins } from "@/components/shared/Coins";
+import { formatCoins, formatDateTime } from "@/utils/format";
 import type { Claim, ClaimStatus } from "@/types/domain";
 
 const PAGE_SIZE = 10;
 type StatusFilter = ClaimStatus | "ALL";
 
+const STATUS_OPTIONS = [
+  { value: "PENDING", label: "Pending" },
+  { value: "APPROVED", label: "Approved" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "ALL", label: "All" },
+];
+
+const EXPORT_COLUMNS: ExportColumn[] = [
+  { key: "userEmail", label: "User" },
+  { key: "campaignTitle", label: "Campaign" },
+  { key: "status", label: "Status" },
+  { key: "rewardAmount", label: "Coins" },
+  { key: "note", label: "User note" },
+  { key: "reviewNote", label: "Review note" },
+  { key: "reviewedAt", label: "Reviewed", format: (v) => formatDateTime(v as string | null) },
+  { key: "createdAt", label: "Submitted", format: (v) => formatDateTime(v as string | null) },
+];
+
 export const ClaimsPage = (): JSX.Element => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<StatusFilter>("PENDING");
+  const [search, setSearch] = useState("");
   const [reviewing, setReviewing] = useState<Claim | null>(null);
   const [reviewNote, setReviewNote] = useState("");
 
@@ -58,6 +73,19 @@ export const ClaimsPage = (): JSX.Element => {
       }),
   });
 
+  // The backend has no claim text search; filter the current page client-side.
+  const visible = useMemo(() => {
+    if (!data) return [];
+    const term = search.trim().toLowerCase();
+    return term
+      ? data.items.filter(
+          (claim) =>
+            claim.userEmail.toLowerCase().includes(term) ||
+            claim.campaignTitle.toLowerCase().includes(term),
+        )
+      : data.items;
+  }, [data, search]);
+
   const review = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "APPROVE" | "REJECT" }) =>
       claimsService.review(id, { action, reviewNote: reviewNote.trim() || undefined }),
@@ -66,7 +94,7 @@ export const ClaimsPage = (): JSX.Element => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
       toast.success(
         claim.status === "APPROVED"
-          ? `Claim approved — ${formatCurrency(claim.rewardAmount)} credited`
+          ? `Claim approved — ${formatCoins(claim.rewardAmount)} coins credited`
           : "Claim rejected",
       );
       setReviewing(null);
@@ -82,33 +110,58 @@ export const ClaimsPage = (): JSX.Element => {
         description="Verify reward claims — approving credits the user's wallet."
       />
 
-      <div className="mb-4">
-        <Select
-          value={status}
-          onValueChange={(value) => {
-            setStatus(value as StatusFilter);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="sm:w-44">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="APPROVED">Approved</SelectItem>
-            <SelectItem value="REJECTED">Rejected</SelectItem>
-            <SelectItem value="ALL">All</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <FiltersBar
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search user or campaign…",
+        }}
+        selects={[
+          {
+            key: "status",
+            value: status,
+            onChange: (value) => {
+              setStatus(value as StatusFilter);
+              setPage(1);
+            },
+            options: STATUS_OPTIONS,
+            placeholder: "Status",
+          },
+        ]}
+        onClearAll={() => {
+          setSearch("");
+          setStatus("ALL");
+          setPage(1);
+        }}
+      >
+        <ExportButton
+          rows={visible as unknown as Record<string, unknown>[]}
+          columns={EXPORT_COLUMNS}
+          fileName="claims"
+          title="Claims"
+          page={page}
+          filterSummary={
+            [
+              status !== "ALL" ? `Status: ${status}` : "",
+              search.trim() ? `Search: ${search.trim()}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+        />
+      </FiltersBar>
 
       <Card>
         {isLoading ? (
           <TableSkeleton />
-        ) : !data || data.items.length === 0 ? (
+        ) : visible.length === 0 ? (
           <EmptyState
             title="No claims here"
-            description={status === "PENDING" ? "You're all caught up." : "Nothing matches this filter."}
+            description={
+              status === "PENDING" && !search.trim()
+                ? "You're all caught up."
+                : "Nothing matches this filter."
+            }
           />
         ) : (
           <Table>
@@ -123,14 +176,14 @@ export const ClaimsPage = (): JSX.Element => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.items.map((claim) => (
+              {visible.map((claim) => (
                 <TableRow key={claim.id}>
                   <TableCell className="max-w-48 truncate font-medium">{claim.userEmail}</TableCell>
                   <TableCell className="hidden max-w-56 truncate text-muted-foreground md:table-cell">
                     {claim.campaignTitle}
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {formatCurrency(claim.rewardAmount)}
+                    <Coins value={claim.rewardAmount} />
                   </TableCell>
                   <TableCell>
                     <ClaimStatusBadge status={claim.status} />
@@ -181,7 +234,9 @@ export const ClaimsPage = (): JSX.Element => {
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <span className="text-muted-foreground">Reward</span>
-                  <span className="font-semibold">{formatCurrency(reviewing.rewardAmount)}</span>
+                  <span className="font-semibold">
+                    <Coins value={reviewing.rewardAmount} />
+                  </span>
                 </div>
                 {reviewing.note && (
                   <div className="rounded-lg border p-3">

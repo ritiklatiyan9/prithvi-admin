@@ -1,10 +1,10 @@
-import type { ComponentType, SVGProps } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface StatCardProps {
   label: string;
-  value: string | number;
+  value: ReactNode;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   hint?: string;
   loading?: boolean;

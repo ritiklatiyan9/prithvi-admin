@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
 
 const MAX_SIZE_BYTES = 512 * 1024; // data-URL payloads must stay small
+const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const ACCEPT_ATTR = ACCEPTED_TYPES.join(",");
 
 interface ImageUploadProps {
   value: string | null;
@@ -25,12 +27,12 @@ export const ImageUpload = ({
 
   const readFile = (file: File): void => {
     setError(null);
-    if (!file.type.startsWith("image/")) {
-      setError("Only image files are allowed");
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      setError("Only PNG, JPG, WebP, or GIF images are allowed");
       return;
     }
     if (file.size > MAX_SIZE_BYTES) {
-      setError("Image must be smaller than 512 KB");
+      setError("Image (including animated GIF) must be smaller than 512 KB");
       return;
     }
     const reader = new FileReader();
@@ -83,13 +85,13 @@ export const ImageUpload = ({
         >
           <PhotoIcon className="h-7 w-7 text-muted-foreground" />
           <p className="text-sm font-medium">{label}</p>
-          <p className="text-xs text-muted-foreground">Drag & drop or click · PNG/JPG · max 512 KB</p>
+          <p className="text-xs text-muted-foreground">Drag & drop or click · PNG/JPG/WebP/GIF · max 512 KB</p>
         </div>
       )}
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={ACCEPT_ATTR}
         className="hidden"
         onChange={(event) => {
           const file = event.target.files?.[0];

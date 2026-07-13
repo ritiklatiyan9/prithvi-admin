@@ -16,8 +16,10 @@ import { Pagination } from "@/components/shared/Pagination";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { SearchInput } from "@/components/shared/SearchInput";
+import { FiltersBar } from "@/components/shared/FiltersBar";
+import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
 import { StatCard } from "@/components/shared/StatCard";
+import { Coins } from "@/components/shared/Coins";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +41,6 @@ import {
 import { hotOffersService } from "@/services/hot-offers.service";
 import { apiErrorMessage } from "@/services/api-client";
 import { useAuthStore } from "@/store/auth.store";
-import { useDebounce } from "@/hooks/useDebounce";
 import { formatDateTime } from "@/utils/format";
 import type {
   AnalyticsRange,
@@ -66,6 +67,53 @@ const StatusPill = ({ status }: { status: ContentStatus }): JSX.Element => (
   <Badge variant={statusBadge[status]}>{status}</Badge>
 );
 
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All statuses" },
+  { value: "DRAFT", label: "Draft" },
+  { value: "PUBLISHED", label: "Published" },
+  { value: "ARCHIVED", label: "Archived" },
+];
+
+const RANGE_LABELS: Record<AnalyticsRange, string> = {
+  daily: "Last 14 days",
+  weekly: "Last 12 weeks",
+  monthly: "Last 12 months",
+};
+
+const CATEGORY_COLUMNS: ExportColumn[] = [
+  { key: "title", label: "Title" },
+  { key: "slug", label: "Slug" },
+  { key: "subtitle", label: "Subtitle" },
+  { key: "priority", label: "Priority" },
+  { key: "offerCount", label: "Offers" },
+  { key: "featured", label: "Featured", format: (v) => (v ? "Yes" : "No") },
+  { key: "hasFeedbackPage", label: "Feedback page", format: (v) => (v ? "Yes" : "No") },
+  { key: "status", label: "Status" },
+  { key: "createdAt", label: "Created", format: (v) => formatDateTime(v as string | null) },
+];
+
+const OFFER_COLUMNS: ExportColumn[] = [
+  { key: "title", label: "Title" },
+  { key: "appName", label: "App" },
+  { key: "category", label: "Category", format: (v) => (v as { title: string }).title },
+  { key: "rewardAmount", label: "Reward coins" },
+  { key: "rewardCoins", label: "Coins" },
+  { key: "difficulty", label: "Difficulty" },
+  { key: "priority", label: "Priority" },
+  { key: "featured", label: "Featured", format: (v) => (v ? "Yes" : "No") },
+  { key: "trending", label: "Trending", format: (v) => (v ? "Yes" : "No") },
+  { key: "status", label: "Status" },
+  { key: "expiresAt", label: "Expires", format: (v) => formatDateTime(v as string | null) },
+  { key: "createdAt", label: "Created", format: (v) => formatDateTime(v as string | null) },
+];
+
+const SERIES_COLUMNS: ExportColumn[] = [
+  { key: "bucket", label: "Bucket" },
+  { key: "views", label: "Views" },
+  { key: "clicks", label: "Clicks" },
+  { key: "downloads", label: "Downloads" },
+];
+
 export const HotOffersPage = (): JSX.Element => {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
@@ -85,10 +133,10 @@ export const HotOffersPage = (): JSX.Element => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContentStatus | "ALL">("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [offerDialog, setOfferDialog] = useState(false);
   const [editingOffer, setEditingOffer] = useState<HotOffer | null>(null);
   const [deleteOffer, setDeleteOffer] = useState<HotOffer | null>(null);
-  const debouncedSearch = useDebounce(search);
 
   // analytics state
   const [range, setRange] = useState<AnalyticsRange>("daily");
@@ -99,13 +147,17 @@ export const HotOffersPage = (): JSX.Element => {
   });
 
   const offers = useQuery({
-    queryKey: ["hot-offers", "offers", { page, debouncedSearch, statusFilter }],
+    queryKey: ["hot-offers", "offers", { page, search, statusFilter, categoryFilter, product: false }],
     queryFn: () =>
       hotOffersService.listOffers({
         page,
         limit: PAGE_SIZE,
-        search: debouncedSearch.trim() || undefined,
+        // FiltersBar already debounces the search input.
+        search: search.trim() || undefined,
         status: statusFilter === "ALL" ? undefined : statusFilter,
+        category: categoryFilter === "ALL" ? undefined : categoryFilter,
+        // App/brand (product) offers live on the App Offers page.
+        product: false,
       }),
     enabled: view === "offers",
   });
@@ -186,30 +238,18 @@ export const HotOffersPage = (): JSX.Element => {
             {tab}
           </Button>
         ))}
-        {view === "offers" && (
-          <div className="ml-auto flex items-center gap-2">
-            <SearchInput value={search} onChange={setSearch} placeholder="Search offers…" />
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as ContentStatus | "ALL");
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All statuses</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PUBLISHED">Published</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
-              </SelectContent>
-            </Select>
+        {view === "categories" && (
+          <div className="ml-auto">
+            <ExportButton
+              rows={(categories.data ?? []) as unknown as Record<string, unknown>[]}
+              columns={CATEGORY_COLUMNS}
+              fileName="hot-offer-categories"
+              title="Hot Offer categories"
+            />
           </div>
         )}
         {view === "analytics" && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             <Select value={range} onValueChange={(value) => setRange(value as AnalyticsRange)}>
               <SelectTrigger className="w-36">
                 <SelectValue />
@@ -220,9 +260,85 @@ export const HotOffersPage = (): JSX.Element => {
                 <SelectItem value="monthly">Last 12 months</SelectItem>
               </SelectContent>
             </Select>
+            <ExportButton
+              rows={(analytics.data?.series ?? []) as unknown as Record<string, unknown>[]}
+              columns={SERIES_COLUMNS}
+              fileName="hot-offers-analytics"
+              title="Hot Offers analytics timeline"
+              filterSummary={`Range: ${RANGE_LABELS[range]}`}
+            />
           </div>
         )}
       </div>
+
+      {view === "offers" && (
+        <FiltersBar
+          search={{
+            value: search,
+            onChange: (value) => {
+              setSearch(value);
+              setPage(1);
+            },
+            placeholder: "Search offers…",
+          }}
+          selects={[
+            {
+              key: "status",
+              value: statusFilter,
+              onChange: (value) => {
+                setStatusFilter(value as ContentStatus | "ALL");
+                setPage(1);
+              },
+              options: STATUS_OPTIONS,
+              placeholder: "Status",
+              className: "sm:w-40",
+            },
+            {
+              key: "category",
+              value: categoryFilter,
+              onChange: (value) => {
+                setCategoryFilter(value);
+                setPage(1);
+              },
+              options: [
+                { value: "ALL", label: "All categories" },
+                ...(categories.data ?? []).map((c) => ({ value: c.slug, label: c.title })),
+              ],
+              placeholder: "Category",
+            },
+          ]}
+          onClearAll={() => {
+            setSearch("");
+            setStatusFilter("ALL");
+            setCategoryFilter("ALL");
+            setPage(1);
+          }}
+        >
+          <div className="ml-auto">
+            <ExportButton
+              rows={(offers.data?.items ?? []) as unknown as Record<string, unknown>[]}
+              columns={OFFER_COLUMNS}
+              fileName="hot-offers"
+              title="Hot Offers"
+              page={page}
+              filterSummary={
+                [
+                  statusFilter !== "ALL" ? `Status: ${statusFilter}` : "",
+                  categoryFilter !== "ALL"
+                    ? `Category: ${
+                        categories.data?.find((c) => c.slug === categoryFilter)?.title ??
+                        categoryFilter
+                      }`
+                    : "",
+                  search.trim() ? `Search: ${search.trim()}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || undefined
+              }
+            />
+          </div>
+        </FiltersBar>
+      )}
 
       {view === "categories" && (
         <Card>
@@ -251,15 +367,27 @@ export const HotOffersPage = (): JSX.Element => {
                   {categories.data.map((category) => (
                     <TableRow key={category.id}>
                       <TableCell>
-                        <p className="font-medium">
-                          {category.title}
-                          {category.featured && (
-                            <Badge className="ml-2" variant="info">
-                              Featured
-                            </Badge>
+                        <div className="flex items-center gap-2.5">
+                          {category.imageUrl && (
+                            <img
+                              src={category.imageUrl}
+                              alt=""
+                              className="h-9 w-9 shrink-0 rounded-md border object-cover"
+                              onError={(e) => (e.currentTarget.style.display = "none")}
+                            />
                           )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{category.subtitle}</p>
+                          <div>
+                            <p className="font-medium">
+                              {category.title}
+                              {category.featured && (
+                                <Badge className="ml-2" variant="info">
+                                  Featured
+                                </Badge>
+                              )}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{category.subtitle}</p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {category.slug}
@@ -310,6 +438,12 @@ export const HotOffersPage = (): JSX.Element => {
       )}
 
       {view === "offers" && (
+        <p className="mb-3 text-sm text-muted-foreground">
+          Feedback offers only — app/brand (product) offers moved to the App Offers page.
+        </p>
+      )}
+
+      {view === "offers" && (
         <Card>
           {offers.isLoading ? (
             <TableSkeleton />
@@ -337,21 +471,34 @@ export const HotOffersPage = (): JSX.Element => {
                     {offers.data.items.map((offer) => (
                       <TableRow key={offer.id}>
                         <TableCell className="max-w-64">
-                          <p className="truncate font-medium">
-                            {offer.title}
-                            {offer.featured && (
-                              <Badge className="ml-2" variant="info">
-                                Featured
-                              </Badge>
+                          <div className="flex items-center gap-2.5">
+                            {(offer.brandLogoUrl ?? offer.logoUrl) && (
+                              <img
+                                src={offer.brandLogoUrl ?? offer.logoUrl ?? undefined}
+                                alt=""
+                                className="h-9 w-9 shrink-0 rounded-md border object-cover"
+                                onError={(e) => (e.currentTarget.style.display = "none")}
+                              />
                             )}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {offer.shortDescription}
-                          </p>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">
+                                {offer.title}
+                                {offer.isProduct && <Badge className="ml-2">Product</Badge>}
+                                {offer.featured && (
+                                  <Badge className="ml-2" variant="info">
+                                    Featured
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {offer.shortDescription}
+                              </p>
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell className="text-sm">{offer.category.title}</TableCell>
                         <TableCell className="text-right text-sm font-medium">
-                          {offer.rewardLabel ?? offer.rewardAmount}
+                          {offer.rewardLabel ?? <Coins value={offer.rewardAmount} />}
                         </TableCell>
                         <TableCell className="text-right text-sm">{offer.priority}</TableCell>
                         <TableCell>
@@ -392,7 +539,15 @@ export const HotOffersPage = (): JSX.Element => {
         </Card>
       )}
 
-      {view === "submissions" && <SubmissionsReview />}
+      {view === "submissions" && (
+        <>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Feedback-offer submissions only — app/brand offer submissions are reviewed on the App
+            Offers page.
+          </p>
+          <SubmissionsReview product={false} />
+        </>
+      )}
 
       {view === "fraud" && <FraudDetection />}
 

@@ -1,1 +1,0 @@
-import{g as e}from"./index-Cf-WeGuU.js";const c={list:async t=>{const{data:a}=await e.get("/claims",{params:t});return{items:a.data,meta:a.meta}},review:async(t,a)=>{const{data:i}=await e.patch(`/claims/${t}/review`,a);return i.data}};export{c};

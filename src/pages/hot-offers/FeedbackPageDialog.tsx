@@ -148,7 +148,7 @@ export const FeedbackPageDialog = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="fp-points">Reward points</Label>
+                <Label htmlFor="fp-points">Reward coins</Label>
                 <Input
                   id="fp-points"
                   type="number"

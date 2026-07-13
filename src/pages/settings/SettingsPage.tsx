@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,6 +18,13 @@ import { authService } from "@/services/auth.service";
 import { apiErrorMessage } from "@/services/api-client";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
+import { LevelsCoinsSettings } from "./LevelsCoinsSettings";
+
+const TABS = [
+  { key: "account", label: "Account" },
+  { key: "levels", label: "Levels & Coins" },
+] as const;
+type Tab = (typeof TABS)[number]["key"];
 
 const profileSchema = z.object({
   name: z.string().min(1, "Required").max(120),
@@ -30,6 +37,7 @@ export const SettingsPage = (): JSX.Element => {
   const navigate = useNavigate();
   const { user, setUser, clear } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
+  const [tab, setTab] = useState<Tab>("account");
 
   const {
     register,
@@ -68,9 +76,27 @@ export const SettingsPage = (): JSX.Element => {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Settings" description="Your profile, appearance, and sessions." />
+      <PageHeader
+        title="Settings"
+        description="Your profile, appearance, sessions, and reward tuning."
+      />
 
-      <div className="space-y-6">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {TABS.map(({ key, label }) => (
+          <Button
+            key={key}
+            variant={tab === key ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTab(key)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      {tab === "levels" && <LevelsCoinsSettings />}
+
+      <div className={tab === "account" ? "space-y-6" : "hidden"}>
         <Card>
           <CardHeader>
             <CardTitle>Profile</CardTitle>

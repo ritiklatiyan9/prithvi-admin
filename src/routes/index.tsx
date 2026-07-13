@@ -18,6 +18,10 @@ const DashboardPage = lazyPage(() => import("@/pages/dashboard/DashboardPage"), 
 const CampaignsPage = lazyPage(() => import("@/pages/campaigns/CampaignsPage"), "CampaignsPage");
 const ClaimsPage = lazyPage(() => import("@/pages/claims/ClaimsPage"), "ClaimsPage");
 const UsersPage = lazyPage(() => import("@/pages/users/UsersPage"), "UsersPage");
+const RedemptionsPage = lazyPage(
+  () => import("@/pages/redemptions/RedemptionsPage"),
+  "RedemptionsPage",
+);
 const WalletPage = lazyPage(() => import("@/pages/wallet/WalletPage"), "WalletPage");
 const NotificationsPage = lazyPage(
   () => import("@/pages/notifications/NotificationsPage"),
@@ -26,6 +30,13 @@ const NotificationsPage = lazyPage(
 const AnalyticsPage = lazyPage(() => import("@/pages/analytics/AnalyticsPage"), "AnalyticsPage");
 const SettingsPage = lazyPage(() => import("@/pages/settings/SettingsPage"), "SettingsPage");
 const HotOffersPage = lazyPage(() => import("@/pages/hot-offers/HotOffersPage"), "HotOffersPage");
+const AppOffersPage = lazyPage(() => import("@/pages/app-offers/AppOffersPage"), "AppOffersPage");
+const ReferralsPage = lazyPage(() => import("@/pages/referrals/ReferralsPage"), "ReferralsPage");
+const AppGraphicsPage = lazyPage(
+  () => import("@/pages/app-graphics/AppGraphicsPage"),
+  "AppGraphicsPage",
+);
+const MissionsPage = lazyPage(() => import("@/pages/missions/MissionsPage"), "MissionsPage");
 
 const PageLoader = (): JSX.Element => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -58,10 +69,15 @@ export const router = createBrowserRouter([
           { path: "/", element: withSuspense(<DashboardPage />) },
           { path: "/campaigns", element: withSuspense(<CampaignsPage />) },
           { path: "/claims", element: withSuspense(<ClaimsPage />) },
+          { path: "/redemptions", element: withSuspense(<RedemptionsPage />) },
           { path: "/users", element: withSuspense(<UsersPage />) },
+          { path: "/referrals", element: withSuspense(<ReferralsPage />) },
           { path: "/wallet", element: withSuspense(<WalletPage />) },
           { path: "/notifications", element: withSuspense(<NotificationsPage />) },
           { path: "/hot-offers", element: withSuspense(<HotOffersPage />) },
+          { path: "/app-offers", element: withSuspense(<AppOffersPage />) },
+          { path: "/missions", element: withSuspense(<MissionsPage />) },
+          { path: "/app-graphics", element: withSuspense(<AppGraphicsPage />) },
           { path: "/analytics", element: withSuspense(<AnalyticsPage />) },
           { path: "/settings", element: withSuspense(<SettingsPage />) },
           { path: "*", element: <NotFound /> },

@@ -1,6 +1,4 @@
-import { signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
 import { apiClient } from "./api-client";
-import { firebaseAuth, googleProvider } from "./firebase";
 import type { ApiSuccess } from "@/types/api";
 import type { AuthTokens, User } from "@/types/user";
 
@@ -10,28 +8,48 @@ export const authService = {
    * token with the backend for our app session (JWT + rotating refresh token).
    */
   firebaseSignIn: async (): Promise<AuthTokens> => {
-    const credential = await signInWithPopup(firebaseAuth, googleProvider);
-    const idToken = await credential.user.getIdToken();
-    const { data } = await apiClient.post<ApiSuccess<AuthTokens>>("/auth/firebase", { idToken });
+    const { firebaseGoogleIdToken } = await import("./firebase-auth");
+    const idToken = await firebaseGoogleIdToken();
+    const { data } = await apiClient.post<ApiSuccess<AuthTokens>>(
+      "/auth/firebase",
+      { idToken },
+    );
     return data.data;
   },
 
-  me: async (): Promise<User> => {
-    const { data } = await apiClient.get<ApiSuccess<User>>("/auth/me");
+  me: async (signal?: AbortSignal): Promise<User> => {
+    const { data } = await apiClient.get<ApiSuccess<User>>("/auth/me", {
+      signal,
+    });
     return data.data;
   },
 
-  logout: async (refreshToken: string): Promise<void> => {
+  logout: async (
+    refreshToken: string,
+    accessToken?: string | null,
+  ): Promise<void> => {
+    const firebaseLogout = import("./firebase-auth").then(
+      ({ signOutFirebase }) => signOutFirebase(),
+    );
     await Promise.allSettled([
-      apiClient.post("/auth/logout", { refreshToken }),
-      firebaseSignOut(firebaseAuth),
+      apiClient.post(
+        "/auth/logout",
+        { refreshToken },
+        accessToken
+          ? { headers: { Authorization: `Bearer ${accessToken}` } }
+          : undefined,
+      ),
+      firebaseLogout,
     ]);
   },
 
   logoutAll: async (): Promise<void> => {
+    const firebaseLogout = import("./firebase-auth").then(
+      ({ signOutFirebase }) => signOutFirebase(),
+    );
     await Promise.allSettled([
       apiClient.post("/auth/logout-all"),
-      firebaseSignOut(firebaseAuth),
+      firebaseLogout,
     ]);
   },
 };

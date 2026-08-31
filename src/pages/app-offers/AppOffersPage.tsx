@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  PencilSquareIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FiltersBar } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { Coins } from "@/components/shared/Coins";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,11 +38,12 @@ import { SubmissionsReview } from "../hot-offers/SubmissionsReview";
 
 const PAGE_SIZE = 10;
 
-const statusBadge: Record<ContentStatus, "secondary" | "success" | "outline"> = {
-  DRAFT: "secondary",
-  PUBLISHED: "success",
-  ARCHIVED: "outline",
-};
+const statusBadge: Record<ContentStatus, "secondary" | "success" | "outline"> =
+  {
+    DRAFT: "secondary",
+    PUBLISHED: "success",
+    ARCHIVED: "outline",
+  };
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "All statuses" },
@@ -47,12 +55,20 @@ const STATUS_OPTIONS = [
 const OFFER_COLUMNS: ExportColumn[] = [
   { key: "title", label: "Title" },
   { key: "appName", label: "App" },
-  { key: "category", label: "Category", format: (v) => (v as { title: string }).title },
+  {
+    key: "category",
+    label: "Category",
+    format: (v) => (v as { title: string }).title,
+  },
   { key: "rewardAmount", label: "Reward coins" },
   { key: "rewardCoins", label: "Coins" },
   { key: "featured", label: "Featured", format: (v) => (v ? "Yes" : "No") },
   { key: "status", label: "Status" },
-  { key: "createdAt", label: "Created", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "createdAt",
+    label: "Created",
+    format: (v) => formatDateTime(v as string | null),
+  },
 ];
 
 export const AppOffersPage = (): JSX.Element => {
@@ -62,7 +78,9 @@ export const AppOffersPage = (): JSX.Element => {
   const [view, setView] = useState<"offers" | "submissions">("offers");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ContentStatus | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<ContentStatus | "ALL">(
+    "ALL",
+  );
   const [offerDialog, setOfferDialog] = useState(false);
   const [editingOffer, setEditingOffer] = useState<HotOffer | null>(null);
   const [deleteOffer, setDeleteOffer] = useState<HotOffer | null>(null);
@@ -74,15 +92,22 @@ export const AppOffersPage = (): JSX.Element => {
   });
 
   const offers = useQuery({
-    queryKey: ["hot-offers", "offers", { page, search, statusFilter, product: true }],
-    queryFn: () =>
-      hotOffersService.listOffers({
-        page,
-        limit: PAGE_SIZE,
-        search: search.trim() || undefined,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-        product: true,
-      }),
+    queryKey: [
+      "hot-offers",
+      "offers",
+      { page, search, statusFilter, product: true },
+    ],
+    queryFn: ({ signal }) =>
+      hotOffersService.listOffers(
+        {
+          page,
+          limit: PAGE_SIZE,
+          search: search.trim() || undefined,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+          product: true,
+        },
+        signal,
+      ),
     enabled: view === "offers",
   });
 
@@ -161,7 +186,12 @@ export const AppOffersPage = (): JSX.Element => {
           >
             <div className="ml-auto">
               <ExportButton
-                rows={(offers.data?.items ?? []) as unknown as Record<string, unknown>[]}
+                rows={
+                  (offers.data?.items ?? []) as unknown as Record<
+                    string,
+                    unknown
+                  >[]
+                }
                 columns={OFFER_COLUMNS}
                 fileName="app-offers"
                 title="App Offers"
@@ -196,7 +226,9 @@ export const AppOffersPage = (): JSX.Element => {
                         <TableHead className="text-right">Coins</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created</TableHead>
-                        {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                        {canWrite && (
+                          <TableHead className="text-right">Actions</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -206,10 +238,16 @@ export const AppOffersPage = (): JSX.Element => {
                             <div className="flex items-center gap-2.5">
                               {(offer.brandLogoUrl ?? offer.logoUrl) && (
                                 <img
-                                  src={offer.brandLogoUrl ?? offer.logoUrl ?? undefined}
+                                  src={
+                                    offer.brandLogoUrl ??
+                                    offer.logoUrl ??
+                                    undefined
+                                  }
                                   alt=""
                                   className="h-9 w-9 shrink-0 rounded-md border object-cover"
-                                  onError={(e) => (e.currentTarget.style.display = "none")}
+                                  onError={(e) =>
+                                    (e.currentTarget.style.display = "none")
+                                  }
                                 />
                               )}
                               <div className="min-w-0">
@@ -232,7 +270,9 @@ export const AppOffersPage = (): JSX.Element => {
                             <Coins value={offer.rewardCoins} />
                           </TableCell>
                           <TableCell>
-                            <Badge variant={statusBadge[offer.status]}>{offer.status}</Badge>
+                            <Badge variant={statusBadge[offer.status]}>
+                              {offer.status}
+                            </Badge>
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-sm">
                             {formatDateTime(offer.createdAt)}

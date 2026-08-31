@@ -4,7 +4,10 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { FiltersBar } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { ClaimStatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
@@ -51,8 +54,16 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { key: "rewardAmount", label: "Coins" },
   { key: "note", label: "User note" },
   { key: "reviewNote", label: "Review note" },
-  { key: "reviewedAt", label: "Reviewed", format: (v) => formatDateTime(v as string | null) },
-  { key: "createdAt", label: "Submitted", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "reviewedAt",
+    label: "Reviewed",
+    format: (v) => formatDateTime(v as string | null),
+  },
+  {
+    key: "createdAt",
+    label: "Submitted",
+    format: (v) => formatDateTime(v as string | null),
+  },
 ];
 
 export const ClaimsPage = (): JSX.Element => {
@@ -65,12 +76,15 @@ export const ClaimsPage = (): JSX.Element => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["claims", { page, status }],
-    queryFn: () =>
-      claimsService.list({
-        page,
-        limit: PAGE_SIZE,
-        status: status === "ALL" ? undefined : status,
-      }),
+    queryFn: ({ signal }) =>
+      claimsService.list(
+        {
+          page,
+          limit: PAGE_SIZE,
+          status: status === "ALL" ? undefined : status,
+        },
+        signal,
+      ),
   });
 
   // The backend has no claim text search; filter the current page client-side.
@@ -87,8 +101,17 @@ export const ClaimsPage = (): JSX.Element => {
   }, [data, search]);
 
   const review = useMutation({
-    mutationFn: ({ id, action }: { id: string; action: "APPROVE" | "REJECT" }) =>
-      claimsService.review(id, { action, reviewNote: reviewNote.trim() || undefined }),
+    mutationFn: ({
+      id,
+      action,
+    }: {
+      id: string;
+      action: "APPROVE" | "REJECT";
+    }) =>
+      claimsService.review(id, {
+        action,
+        reviewNote: reviewNote.trim() || undefined,
+      }),
     onSuccess: (claim) => {
       void queryClient.invalidateQueries({ queryKey: ["claims"] });
       void queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
@@ -171,14 +194,18 @@ export const ClaimsPage = (): JSX.Element => {
                 <TableHead className="hidden md:table-cell">Campaign</TableHead>
                 <TableHead className="text-right">Reward</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Submitted</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  Submitted
+                </TableHead>
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {visible.map((claim) => (
                 <TableRow key={claim.id}>
-                  <TableCell className="max-w-48 truncate font-medium">{claim.userEmail}</TableCell>
+                  <TableCell className="max-w-48 truncate font-medium">
+                    {claim.userEmail}
+                  </TableCell>
                   <TableCell className="hidden max-w-56 truncate text-muted-foreground md:table-cell">
                     {claim.campaignTitle}
                   </TableCell>
@@ -193,11 +220,19 @@ export const ClaimsPage = (): JSX.Element => {
                   </TableCell>
                   <TableCell>
                     {claim.status === "PENDING" ? (
-                      <Button size="sm" variant="outline" onClick={() => setReviewing(claim)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReviewing(claim)}
+                      >
                         Review
                       </Button>
                     ) : (
-                      <Button size="sm" variant="ghost" onClick={() => setReviewing(claim)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setReviewing(claim)}
+                      >
                         View
                       </Button>
                     )}
@@ -224,7 +259,9 @@ export const ClaimsPage = (): JSX.Element => {
             <>
               <DialogHeader>
                 <DialogTitle>
-                  {reviewing.status === "PENDING" ? "Review claim" : "Claim details"}
+                  {reviewing.status === "PENDING"
+                    ? "Review claim"
+                    : "Claim details"}
                 </DialogTitle>
                 <DialogDescription>
                   {reviewing.userEmail} · {reviewing.campaignTitle}
@@ -257,7 +294,9 @@ export const ClaimsPage = (): JSX.Element => {
                         {formatDateTime(reviewing.reviewedAt)}
                       </span>
                     </div>
-                    {reviewing.reviewNote && <p className="mt-2">{reviewing.reviewNote}</p>}
+                    {reviewing.reviewNote && (
+                      <p className="mt-2">{reviewing.reviewNote}</p>
+                    )}
                   </div>
                 )}
                 {reviewing.status === "PENDING" && (
@@ -279,13 +318,17 @@ export const ClaimsPage = (): JSX.Element => {
                   <Button
                     variant="destructive"
                     disabled={review.isPending}
-                    onClick={() => review.mutate({ id: reviewing.id, action: "REJECT" })}
+                    onClick={() =>
+                      review.mutate({ id: reviewing.id, action: "REJECT" })
+                    }
                   >
                     Reject
                   </Button>
                   <Button
                     disabled={review.isPending}
-                    onClick={() => review.mutate({ id: reviewing.id, action: "APPROVE" })}
+                    onClick={() =>
+                      review.mutate({ id: reviewing.id, action: "APPROVE" })
+                    }
                   >
                     {review.isPending ? "Working…" : "Approve & credit wallet"}
                   </Button>

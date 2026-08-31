@@ -7,7 +7,10 @@ import { Pagination } from "@/components/shared/Pagination";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { FiltersBar } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +24,10 @@ import { HistoryTable } from "./HistoryTable";
 
 const PAGE_SIZE = 10;
 
-const typeBadge: Record<NotificationType, "secondary" | "info" | "warning" | "success"> = {
+const typeBadge: Record<
+  NotificationType,
+  "secondary" | "info" | "warning" | "success"
+> = {
   SYSTEM: "secondary",
   CAMPAIGN: "info",
   CLAIM: "warning",
@@ -37,11 +43,19 @@ const TYPE_OPTIONS = [
 ];
 
 const INBOX_COLUMNS: ExportColumn[] = [
-  { key: "createdAt", label: "Received", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "createdAt",
+    label: "Received",
+    format: (v) => formatDateTime(v as string | null),
+  },
   { key: "type", label: "Type" },
   { key: "title", label: "Title" },
   { key: "body", label: "Body" },
-  { key: "readAt", label: "Read", format: (v) => (v ? formatDateTime(v as string) : "Unread") },
+  {
+    key: "readAt",
+    label: "Read",
+    format: (v) => (v ? formatDateTime(v as string) : "Unread"),
+  },
 ];
 
 /** The admin's own notification inbox (the sidebar unread badge links here). */
@@ -54,7 +68,8 @@ const InboxView = (): JSX.Element => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications", { page, unreadOnly }],
-    queryFn: () => notificationsService.list({ page, limit: PAGE_SIZE, unreadOnly }),
+    queryFn: ({ signal }) =>
+      notificationsService.list({ page, limit: PAGE_SIZE, unreadOnly }, signal),
   });
 
   // unreadOnly is the only API filter — type/search filter the loaded page client-side.
@@ -80,7 +95,11 @@ const InboxView = (): JSX.Element => {
   return (
     <>
       <FiltersBar
-        search={{ value: search, onChange: setSearch, placeholder: "Search title or body…" }}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search title or body…",
+        }}
         selects={[
           {
             key: "read",
@@ -99,7 +118,8 @@ const InboxView = (): JSX.Element => {
           {
             key: "type",
             value: typeFilter,
-            onChange: (value) => setTypeFilter(value as NotificationType | "ALL"),
+            onChange: (value) =>
+              setTypeFilter(value as NotificationType | "ALL"),
             options: TYPE_OPTIONS,
             placeholder: "Type",
             className: "sm:w-40",
@@ -138,7 +158,9 @@ const InboxView = (): JSX.Element => {
         ) : visible.length === 0 ? (
           <EmptyState
             title="No notifications"
-            description={unreadOnly ? "You're all caught up." : "Nothing here yet."}
+            description={
+              unreadOnly ? "You're all caught up." : "Nothing here yet."
+            }
           />
         ) : (
           <>
@@ -158,12 +180,18 @@ const InboxView = (): JSX.Element => {
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className={`text-sm ${unread ? "font-semibold" : "font-medium"}`}>
+                        <p
+                          className={`text-sm ${unread ? "font-semibold" : "font-medium"}`}
+                        >
                           {notification.title}
                         </p>
-                        <Badge variant={typeBadge[notification.type]}>{notification.type}</Badge>
+                        <Badge variant={typeBadge[notification.type]}>
+                          {notification.type}
+                        </Badge>
                       </div>
-                      <p className="mt-0.5 text-sm text-muted-foreground">{notification.body}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {notification.body}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {formatDateTime(notification.createdAt)}
                       </p>

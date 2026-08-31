@@ -85,7 +85,7 @@ const AndroidPreview = ({
         <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
           P
         </span>
-        <span className="font-medium text-zinc-300">Prithvi</span>
+        <span className="font-medium text-zinc-300">Money Marathon</span>
         <span>· now</span>
       </div>
       <div className="mt-1.5 flex items-start gap-3">

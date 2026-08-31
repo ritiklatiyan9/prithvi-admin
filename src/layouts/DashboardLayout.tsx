@@ -7,7 +7,8 @@ import { cn } from "@/utils/cn";
 
 export const DashboardLayout = (): JSX.Element => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { sidebarCollapsed, toggleSidebar } = useUiStore();
+  const sidebarCollapsed = useUiStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useUiStore((state) => state.toggleSidebar);
 
   return (
     // no bg-background: lets the dark body gradient (index.css) show through
@@ -19,7 +20,10 @@ export const DashboardLayout = (): JSX.Element => {
           sidebarCollapsed ? "w-[4.5rem]" : "w-60",
         )}
       >
-        <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+        />
       </aside>
 
       {/* mobile drawer — always full width, never collapsed */}

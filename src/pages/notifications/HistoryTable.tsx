@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BellSlashIcon, LinkIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import {
+  BellSlashIcon,
+  LinkIcon,
+  PhotoIcon,
+} from "@heroicons/react/24/outline";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,8 +15,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  FiltersBar,
+  type DateRangeValue,
+} from "@/components/shared/FiltersBar";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { Pagination } from "@/components/shared/Pagination";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -43,7 +53,8 @@ const audienceLabel = (log: PushLog): string => {
 
 const AudienceChip = ({ log }: { log: PushLog }): JSX.Element => {
   if (log.audience === "all") return <Badge variant="info">All users</Badge>;
-  if (log.audience === "topic") return <Badge variant="secondary">#{log.topic}</Badge>;
+  if (log.audience === "topic")
+    return <Badge variant="secondary">#{log.topic}</Badge>;
   return (
     <Badge variant="outline" title={log.userId ?? undefined}>
       User {log.userId?.slice(0, 8)}…
@@ -52,7 +63,11 @@ const AudienceChip = ({ log }: { log: PushLog }): JSX.Element => {
 };
 
 const EXPORT_COLUMNS: ExportColumn[] = [
-  { key: "createdAt", label: "Sent", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "createdAt",
+    label: "Sent",
+    format: (v) => formatDateTime(v as string | null),
+  },
   { key: "sentBy", label: "By", format: (v) => (v as { name: string }).name },
   {
     key: "audience",
@@ -74,7 +89,8 @@ const EXPORT_COLUMNS: ExportColumn[] = [
 ];
 
 /** yyyy-MM-dd in the viewer's timezone, to match the date-range inputs. */
-const localDay = (iso: string): string => new Date(iso).toLocaleDateString("en-CA");
+const localDay = (iso: string): string =>
+  new Date(iso).toLocaleDateString("en-CA");
 
 export const HistoryTable = (): JSX.Element => {
   const [page, setPage] = useState(1);
@@ -85,11 +101,13 @@ export const HistoryTable = (): JSX.Element => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications", "history", page],
-    queryFn: () => notificationsService.history({ page, limit: PAGE_SIZE }),
-    placeholderData: (previous) => previous,
+    queryFn: ({ signal }) =>
+      notificationsService.history({ page, limit: PAGE_SIZE }, signal),
     // Poll while any loaded row is still queued, stop once all have settled.
     refetchInterval: (query) =>
-      query.state.data?.items.some((log) => log.status === "QUEUED") ? 8000 : false,
+      query.state.data?.items.some((log) => log.status === "QUEUED")
+        ? 8000
+        : false,
   });
 
   // The history endpoint only paginates — these filters apply to the loaded page client-side.
@@ -109,13 +127,18 @@ export const HistoryTable = (): JSX.Element => {
   });
 
   const hasFilters =
-    status !== "ALL" || audience !== "ALL" || Boolean(term) || Boolean(range.from || range.to);
+    status !== "ALL" ||
+    audience !== "ALL" ||
+    Boolean(term) ||
+    Boolean(range.from || range.to);
   const filterSummary =
     [
       status !== "ALL" ? `Status: ${status}` : "",
       audience !== "ALL" ? `Audience: ${audience}` : "",
       term ? `Search: ${term}` : "",
-      range.from || range.to ? `Dates: ${range.from || "…"} – ${range.to || "…"}` : "",
+      range.from || range.to
+        ? `Dates: ${range.from || "…"} – ${range.to || "…"}`
+        : "",
     ]
       .filter(Boolean)
       .join(" · ") || undefined;
@@ -153,7 +176,9 @@ export const HistoryTable = (): JSX.Element => {
               <TableRow key={log.id}>
                 <TableCell className="whitespace-nowrap text-sm">
                   {formatDateTime(log.createdAt)}
-                  <p className="text-xs text-muted-foreground">by {log.sentBy.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    by {log.sentBy.name}
+                  </p>
                   {log.scheduledAt && log.status === "SCHEDULED" && (
                     <p className="text-xs text-muted-foreground">
                       fires {formatDateTime(log.scheduledAt)}
@@ -163,18 +188,28 @@ export const HistoryTable = (): JSX.Element => {
                 <TableCell className="whitespace-nowrap">
                   <AudienceChip log={log} />
                 </TableCell>
-                <TableCell className="max-w-64" title={`${log.title}\n\n${log.body}`}>
+                <TableCell
+                  className="max-w-64"
+                  title={`${log.title}\n\n${log.body}`}
+                >
                   <p className="truncate text-sm font-medium">{log.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">{log.body}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {log.body}
+                  </p>
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
                   {log.status === "QUEUED" || log.status === "SCHEDULED" ? (
                     <span className="text-muted-foreground">—</span>
                   ) : (
                     <>
-                      <span className="text-teal-600 dark:text-teal-400">{log.successCount}</span>
+                      <span className="text-teal-600 dark:text-teal-400">
+                        {log.successCount}
+                      </span>
                       {log.failureCount > 0 && (
-                        <span className="text-red-500"> / {log.failureCount} failed</span>
+                        <span className="text-red-500">
+                          {" "}
+                          / {log.failureCount} failed
+                        </span>
                       )}
                     </>
                   )}
@@ -182,7 +217,11 @@ export const HistoryTable = (): JSX.Element => {
                 <TableCell>
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     {log.imageUrl && (
-                      <PhotoIcon className="h-4 w-4" title={log.imageUrl} aria-label="Has image" />
+                      <PhotoIcon
+                        className="h-4 w-4"
+                        title={log.imageUrl}
+                        aria-label="Has image"
+                      />
                     )}
                     {log.route && (
                       <LinkIcon
@@ -201,7 +240,10 @@ export const HistoryTable = (): JSX.Element => {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant[log.status]} title={log.error ?? undefined}>
+                  <Badge
+                    variant={statusVariant[log.status]}
+                    title={log.error ?? undefined}
+                  >
                     {log.status === "QUEUED" && (
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
                     )}
@@ -220,7 +262,11 @@ export const HistoryTable = (): JSX.Element => {
   return (
     <>
       <FiltersBar
-        search={{ value: search, onChange: setSearch, placeholder: "Search title, body, topic…" }}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search title, body, topic…",
+        }}
         selects={[
           {
             key: "status",

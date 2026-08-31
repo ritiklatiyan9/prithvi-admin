@@ -1,9 +1,14 @@
 import { Navigate, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { FirebaseError } from "firebase/app";
 import { toast } from "sonner";
 import { GiftIcon } from "@heroicons/react/24/outline";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/auth.service";
 import { apiErrorMessage } from "@/services/api-client";
@@ -30,8 +35,20 @@ const GoogleGlyph = (): JSX.Element => (
   </svg>
 );
 
+interface FirebaseLikeError {
+  code: string;
+  message: string;
+}
+
+const isFirebaseError = (error: unknown): error is FirebaseLikeError =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  typeof error.code === "string" &&
+  error.code.startsWith("auth/");
+
 const firebaseErrorMessage = (error: unknown): string => {
-  if (error instanceof FirebaseError) {
+  if (isFirebaseError(error)) {
     switch (error.code) {
       case "auth/popup-closed-by-user":
       case "auth/cancelled-popup-request":
@@ -51,7 +68,8 @@ const firebaseErrorMessage = (error: unknown): string => {
 
 export const LoginPage = (): JSX.Element => {
   const navigate = useNavigate();
-  const { accessToken, setAuth } = useAuthStore();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   const signIn = useMutation({
     mutationFn: authService.firebaseSignIn,
@@ -61,7 +79,7 @@ export const LoginPage = (): JSX.Element => {
     },
     onError: (error) => {
       // A user-cancelled popup isn't worth a red toast.
-      if (error instanceof FirebaseError && error.code.includes("popup")) return;
+      if (isFirebaseError(error) && error.code.includes("popup")) return;
       toast.error(firebaseErrorMessage(error));
     },
   });
@@ -77,14 +95,20 @@ export const LoginPage = (): JSX.Element => {
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <GiftIcon className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">RewardHub Admin</h1>
-          <p className="text-sm text-muted-foreground">Sign in to manage the platform</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Money Marathon Admin
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Sign in to manage the platform
+          </p>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Sign in</CardTitle>
-            <CardDescription>Continue with your administrator Google account.</CardDescription>
+            <CardDescription>
+              Continue with your administrator Google account.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -105,7 +129,8 @@ export const LoginPage = (): JSX.Element => {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground">
-          Only accounts with the ADMIN or SUPER_ADMIN role can access this dashboard.
+          Only accounts with the ADMIN or SUPER_ADMIN role can access this
+          dashboard.
         </p>
       </div>
     </div>

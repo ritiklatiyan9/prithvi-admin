@@ -1,20 +1,37 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   BanknotesIcon,
   ClockIcon,
+  DocumentCheckIcon,
   MegaphoneIcon,
+  PuzzlePieceIcon,
+  TicketIcon,
+  UserPlusIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
-import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
-import { EventsBarChart } from "@/components/shared/EventsBarChart";
+import {
+  FiltersBar,
+  type DateRangeValue,
+} from "@/components/shared/FiltersBar";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
+import { LazyEventsBarChart } from "@/components/shared/LazyEventsBarChart";
 import { ClaimStatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -29,7 +46,9 @@ import { claimsService } from "@/services/claims.service";
 import { Coins } from "@/components/shared/Coins";
 import { formatDateTime, formatNumber } from "@/utils/format";
 
-const defaultFrom = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+const defaultFrom = new Date(Date.now() - 30 * 86_400_000)
+  .toISOString()
+  .slice(0, 10);
 
 const eventExportColumns: ExportColumn[] = [
   { key: "name", label: "Event" },
@@ -37,16 +56,25 @@ const eventExportColumns: ExportColumn[] = [
 ];
 
 export const DashboardPage = (): JSX.Element => {
-  const stats = useQuery({ queryKey: ["admin", "stats"], queryFn: adminService.stats });
-  const [range, setRange] = useState<DateRangeValue>({ from: defaultFrom, to: "" });
+  const stats = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: adminService.stats,
+  });
+  const [range, setRange] = useState<DateRangeValue>({
+    from: defaultFrom,
+    to: "",
+  });
 
   const events = useQuery({
     queryKey: ["analytics", "summary", range],
-    queryFn: () =>
-      analyticsService.summary({
-        from: range.from ? `${range.from}T00:00:00.000Z` : undefined,
-        to: range.to ? `${range.to}T23:59:59.999Z` : undefined,
-      }),
+    queryFn: ({ signal }) =>
+      analyticsService.summary(
+        {
+          from: range.from ? `${range.from}T00:00:00.000Z` : undefined,
+          to: range.to ? `${range.to}T23:59:59.999Z` : undefined,
+        },
+        signal,
+      ),
   });
 
   const recentClaims = useQuery({
@@ -56,7 +84,10 @@ export const DashboardPage = (): JSX.Element => {
 
   return (
     <div>
-      <PageHeader title="Dashboard" description="Platform overview at a glance." />
+      <PageHeader
+        title="Dashboard"
+        description="Platform overview at a glance."
+      />
 
       <FiltersBar
         dateRange={{ value: range, onChange: setRange }}
@@ -64,7 +95,9 @@ export const DashboardPage = (): JSX.Element => {
       >
         <ExportButton
           className="ml-auto"
-          rows={(events.data?.byName ?? []) as unknown as Record<string, unknown>[]}
+          rows={
+            (events.data?.byName ?? []) as unknown as Record<string, unknown>[]
+          }
           columns={eventExportColumns}
           fileName="dashboard-events"
           title="Analytics events"
@@ -89,29 +122,100 @@ export const DashboardPage = (): JSX.Element => {
           label="Pending claims"
           value={stats.data ? formatNumber(stats.data.pendingClaims) : "—"}
           icon={ClockIcon}
-          hint={stats.data ? `${formatNumber(stats.data.approvedClaims)} approved` : undefined}
+          hint={
+            stats.data
+              ? `${formatNumber(stats.data.approvedClaims)} approved`
+              : undefined
+          }
           loading={stats.isLoading}
         />
         <StatCard
           label="Wallet liability"
-          value={stats.data ? <Coins value={stats.data.totalWalletBalance} /> : "—"}
+          value={
+            stats.data ? <Coins value={stats.data.totalWalletBalance} /> : "—"
+          }
           icon={BanknotesIcon}
-          hint="Total user balances"
+          hint={
+            stats.data && stats.data.coinsInPendingRedemptions > 0
+              ? `+${formatNumber(stats.data.coinsInPendingRedemptions)} coins in pending redemptions`
+              : "Total user balances"
+          }
           loading={stats.isLoading}
         />
+      </div>
+
+      {stats.isError && (
+        <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+          Stats failed to load — refresh to retry.
+        </p>
+      )}
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Link to="/hot-offers" className="block">
+          <StatCard
+            label="Pending proof submissions"
+            value={
+              stats.data ? formatNumber(stats.data.pendingSubmissions) : "—"
+            }
+            icon={DocumentCheckIcon}
+            hint="Hot-offer screenshots awaiting review"
+            loading={stats.isLoading}
+          />
+        </Link>
+        <Link to="/redemptions" className="block">
+          <StatCard
+            label="Pending redemptions"
+            value={
+              stats.data ? formatNumber(stats.data.pendingRedemptions) : "—"
+            }
+            icon={TicketIcon}
+            hint={
+              stats.data
+                ? `${formatNumber(stats.data.fulfilledRedemptions)} coupons issued`
+                : undefined
+            }
+            loading={stats.isLoading}
+          />
+        </Link>
+        <Link to="/missions" className="block">
+          <StatCard
+            label="Pending missions"
+            value={
+              stats.data
+                ? formatNumber(stats.data.pendingMissionCompletions)
+                : "—"
+            }
+            icon={PuzzlePieceIcon}
+            hint="Completions awaiting review"
+            loading={stats.isLoading}
+          />
+        </Link>
+        <Link to="/referrals" className="block">
+          <StatCard
+            label="Referrals"
+            value={stats.data ? formatNumber(stats.data.totalReferrals) : "—"}
+            icon={UserPlusIcon}
+            hint="Users who joined via a code"
+            loading={stats.isLoading}
+          />
+        </Link>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Events</CardTitle>
-            <CardDescription>Tracked analytics events by name in the selected range</CardDescription>
+            <CardDescription>
+              Tracked analytics events by name in the selected range
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {events.isLoading ? (
               <TableSkeleton rows={4} />
             ) : (
-              <EventsBarChart data={(events.data?.byName ?? []).slice(0, 8)} />
+              <LazyEventsBarChart
+                data={(events.data?.byName ?? []).slice(0, 8)}
+              />
             )}
           </CardContent>
         </Card>
@@ -119,7 +223,9 @@ export const DashboardPage = (): JSX.Element => {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Recent claims</CardTitle>
-            <CardDescription>Latest submissions across all campaigns</CardDescription>
+            <CardDescription>
+              Latest submissions across all campaigns
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {recentClaims.isLoading ? (
@@ -137,7 +243,9 @@ export const DashboardPage = (): JSX.Element => {
                   {recentClaims.data.items.map((claim) => (
                     <TableRow key={claim.id}>
                       <TableCell>
-                        <p className="max-w-40 truncate font-medium">{claim.userEmail}</p>
+                        <p className="max-w-40 truncate font-medium">
+                          {claim.userEmail}
+                        </p>
                         <p className="max-w-40 truncate text-xs text-muted-foreground">
                           {claim.campaignTitle}
                         </p>

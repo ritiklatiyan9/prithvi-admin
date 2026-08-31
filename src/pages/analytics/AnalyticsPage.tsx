@@ -2,13 +2,25 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChartBarIcon, CursorArrowRaysIcon } from "@heroicons/react/24/outline";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  FiltersBar,
+  type DateRangeValue,
+} from "@/components/shared/FiltersBar";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { StatCard } from "@/components/shared/StatCard";
-import { EventsBarChart } from "@/components/shared/EventsBarChart";
+import { LazyEventsBarChart } from "@/components/shared/LazyEventsBarChart";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -39,15 +51,19 @@ export const AnalyticsPage = (): JSX.Element => {
   const params = customDates
     ? {
         from: dates.from ? new Date(dates.from).toISOString() : undefined,
-        to: dates.to ? new Date(`${dates.to}T23:59:59.999`).toISOString() : undefined,
+        to: dates.to
+          ? new Date(`${dates.to}T23:59:59.999`).toISOString()
+          : undefined,
       }
     : range === "all"
       ? {}
-      : { from: new Date(Date.now() - Number(range) * 86_400_000).toISOString() };
+      : {
+          from: new Date(Date.now() - Number(range) * 86_400_000).toISOString(),
+        };
 
   const { data, isLoading } = useQuery({
     queryKey: ["analytics", "summary", range, dates],
-    queryFn: () => analyticsService.summary(params),
+    queryFn: ({ signal }) => analyticsService.summary(params, signal),
   });
 
   const topEvent = data?.byName[0];
@@ -65,7 +81,8 @@ export const AnalyticsPage = (): JSX.Element => {
     {
       key: "count",
       label: "Share %",
-      format: (v) => (totalEvents > 0 ? (((v as number) / totalEvents) * 100).toFixed(1) : ""),
+      format: (v) =>
+        totalEvents > 0 ? (((v as number) / totalEvents) * 100).toFixed(1) : "",
     },
   ];
 
@@ -73,7 +90,7 @@ export const AnalyticsPage = (): JSX.Element => {
     [
       customDates
         ? `Dates: ${dates.from || "…"} – ${dates.to || "…"}`
-        : RANGES.find((option) => option.value === range)?.label ?? "",
+        : (RANGES.find((option) => option.value === range)?.label ?? ""),
       term ? `Search: ${term}` : "",
     ]
       .filter(Boolean)
@@ -81,10 +98,17 @@ export const AnalyticsPage = (): JSX.Element => {
 
   return (
     <div>
-      <PageHeader title="Analytics" description="Event volume tracked across the platform." />
+      <PageHeader
+        title="Analytics"
+        description="Event volume tracked across the platform."
+      />
 
       <FiltersBar
-        search={{ value: search, onChange: setSearch, placeholder: "Search event names…" }}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search event names…",
+        }}
         selects={[
           {
             key: "range",
@@ -124,7 +148,9 @@ export const AnalyticsPage = (): JSX.Element => {
           label="Top event"
           value={topEvent ? topEvent.name : "—"}
           icon={CursorArrowRaysIcon}
-          hint={topEvent ? `${formatNumber(topEvent.count)} occurrences` : undefined}
+          hint={
+            topEvent ? `${formatNumber(topEvent.count)} occurrences` : undefined
+          }
           loading={isLoading}
         />
       </div>
@@ -132,13 +158,15 @@ export const AnalyticsPage = (): JSX.Element => {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Events by name</CardTitle>
-          <CardDescription>Distribution over the selected range</CardDescription>
+          <CardDescription>
+            Distribution over the selected range
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <TableSkeleton rows={4} />
           ) : (
-            <EventsBarChart data={events.slice(0, 12)} height={320} />
+            <LazyEventsBarChart data={events.slice(0, 12)} height={320} />
           )}
         </CardContent>
       </Card>
@@ -146,12 +174,17 @@ export const AnalyticsPage = (): JSX.Element => {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>All events</CardTitle>
-          <CardDescription>Table view of every tracked event name</CardDescription>
+          <CardDescription>
+            Table view of every tracked event name
+          </CardDescription>
         </CardHeader>
         {isLoading ? (
           <TableSkeleton rows={4} />
         ) : events.length === 0 ? (
-          <EmptyState title="No events tracked" description="Events appear once clients call the track endpoint." />
+          <EmptyState
+            title="No events tracked"
+            description="Events appear once clients call the track endpoint."
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -164,7 +197,9 @@ export const AnalyticsPage = (): JSX.Element => {
             <TableBody>
               {events.map((event) => (
                 <TableRow key={event.name}>
-                  <TableCell className="font-mono text-xs">{event.name}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {event.name}
+                  </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
                     {formatNumber(event.count)}
                   </TableCell>

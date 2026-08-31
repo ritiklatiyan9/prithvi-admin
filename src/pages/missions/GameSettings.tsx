@@ -16,7 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { settingsService } from "@/services/settings.service";
-import { gameService, TTT_DIFFICULTIES, TTT_SETTING_KEYS } from "@/services/game.service";
+import {
+  gameService,
+  TTT_DIFFICULTIES,
+  TTT_SETTING_KEYS,
+} from "@/services/game.service";
 import { apiErrorMessage } from "@/services/api-client";
 import { useAuthStore } from "@/store/auth.store";
 
@@ -31,7 +35,10 @@ export const GameSettings = (): JSX.Element => {
     queryKey: ["settings"],
     queryFn: settingsService.list,
   });
-  const config = useQuery({ queryKey: ["game", "ttt-config"], queryFn: gameService.tttConfig });
+  const config = useQuery({
+    queryKey: ["game", "ttt-config"],
+    queryFn: gameService.tttConfig,
+  });
 
   const settings = useMemo(
     () => (data ?? []).filter((s) => TTT_KEYS.includes(s.key)),
@@ -47,7 +54,9 @@ export const GameSettings = (): JSX.Element => {
   const dirty = useMemo(
     () =>
       Object.fromEntries(
-        settings.filter((s) => draft[s.key] !== s.value).map((s) => [s.key, draft[s.key]]),
+        settings
+          .filter((s) => draft[s.key] !== s.value)
+          .map((s) => [s.key, draft[s.key]]),
       ),
     [settings, draft],
   );
@@ -63,7 +72,8 @@ export const GameSettings = (): JSX.Element => {
     onError: (error) => toast.error(apiErrorMessage(error)),
   });
 
-  const set = (key: string, value: string): void => setDraft((d) => ({ ...d, [key]: value }));
+  const set = (key: string, value: string): void =>
+    setDraft((d) => ({ ...d, [key]: value }));
 
   if (isLoading) return <TableSkeleton />;
 
@@ -74,12 +84,20 @@ export const GameSettings = (): JSX.Element => {
           <div>
             <p className="text-sm font-semibold">Tic-Tac-Toe</p>
             <p className="text-sm text-muted-foreground">
-              Server-side AI — every match is validated and scored on the backend.
+              Server-side AI — every match is validated and scored on the
+              backend.
             </p>
           </div>
           {canEdit && (
-            <Button onClick={() => save.mutate()} disabled={dirtyCount === 0 || save.isPending}>
-              {save.isPending ? "Saving…" : dirtyCount > 0 ? `Save ${dirtyCount} change(s)` : "Saved"}
+            <Button
+              onClick={() => save.mutate()}
+              disabled={dirtyCount === 0 || save.isPending}
+            >
+              {save.isPending
+                ? "Saving…"
+                : dirtyCount > 0
+                  ? `Save ${dirtyCount} change(s)`
+                  : "Saved"}
             </Button>
           )}
         </div>
@@ -95,13 +113,18 @@ export const GameSettings = (): JSX.Element => {
                   <Label htmlFor={setting.key} className="font-medium">
                     {setting.label}
                   </Label>
-                  {setting.isDefault && <Badge variant="outline">default</Badge>}
+                  {setting.isDefault && (
+                    <Badge variant="outline">default</Badge>
+                  )}
                 </div>
-                <p className="mt-0.5 text-sm text-muted-foreground">{setting.description}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {setting.description}
+                </p>
                 {setting.key === TTT_SETTING_KEYS.difficulty &&
                   draft[setting.key] === "IMPOSSIBLE" && (
                     <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-500">
-                      Nearly impossible to beat — users will almost never earn win coins.
+                      Nearly impossible to beat — users will almost never earn
+                      win coins.
                     </p>
                   )}
               </div>
@@ -128,7 +151,9 @@ export const GameSettings = (): JSX.Element => {
                     id={setting.key}
                     checked={draft[setting.key] === "true"}
                     disabled={!canEdit}
-                    onCheckedChange={(checked) => set(setting.key, checked ? "true" : "false")}
+                    onCheckedChange={(checked) =>
+                      set(setting.key, checked ? "true" : "false")
+                    }
                   />
                 ) : (
                   <Input
@@ -152,9 +177,10 @@ export const GameSettings = (): JSX.Element => {
 
         {config.data && (
           <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
-            Live config: {config.data.enabled ? "enabled" : "disabled"} · {config.data.difficulty}{" "}
-            · {config.data.winCoins} coins per win · {config.data.hintWinCoins} coins per hinted
-            win · {config.data.dailyLimit} matches/day
+            Live config: {config.data.enabled ? "enabled" : "disabled"} ·{" "}
+            {config.data.difficulty} · {config.data.winCoins} coins per win ·{" "}
+            {config.data.hintWinCoins} coins per hinted win · current viewer:{" "}
+            {config.data.membershipPlan} · {config.data.dailyLimit} matches/day
           </p>
         )}
       </Card>
@@ -163,15 +189,18 @@ export const GameSettings = (): JSX.Element => {
         <p className="mb-2 text-sm font-semibold">How the 3-piece rule works</p>
         <div className="space-y-2 text-sm text-muted-foreground">
           <p>
-            Standard 3×3 board. The user plays X and always moves first; the AI plays O. Each side
-            may have at most <span className="font-medium text-foreground">3 marks</span> on the
-            board — placing a 4th mark removes that player's oldest mark in the same move.
+            Standard 3×3 board. The user plays X and always moves first; the AI
+            plays O. Each side may have at most{" "}
+            <span className="font-medium text-foreground">3 marks</span> on the
+            board — placing a 4th mark removes that player's oldest mark in the
+            same move.
           </p>
           <p>
-            A win is 3 in a row of your marks after your placement (checked after any removal).
-            Because marks recycle, games can't gridlock; matches are capped at 60 moves and hitting
-            the cap counts as a draw. Winning credits the user the configured coins to their
-            wallet, once per match.
+            A win is 3 in a row of your marks after your placement (checked
+            after any removal). Because marks recycle, games can't gridlock;
+            matches are capped at 60 moves and hitting the cap counts as a draw.
+            Winning credits the user the configured coins to their wallet, once
+            per match.
           </p>
         </div>
       </Card>

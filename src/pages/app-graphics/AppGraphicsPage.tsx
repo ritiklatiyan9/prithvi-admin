@@ -393,11 +393,14 @@ const HomeScreen = (): JSX.Element => {
         </span>
       </div>
 
-      {/* Feedback Zone hero — leads the page, art contained (baked text) */}
+      {/* Home banner — admin-uploaded, hidden in the real app until set */}
+      <HeroCard slotKey="homeBanner" fit="cover" ratio="h-[92px]" />
+
+      {/* Reward Zone hero — leads the page, art contained */}
       <HeroCard
         slotKey="feedbackPromo"
         fit="contain"
-        title="We value your feedback!"
+        title="Reward Zone promo"
         subtitle="Help us improve and get rewarded."
         trailing={
           <>

@@ -14,12 +14,16 @@ import {
   MegaphoneIcon,
   PhotoIcon,
   FlagIcon,
+  QrCodeIcon,
   UserPlusIcon,
   UsersIcon,
   GiftIcon,
+  PuzzlePieceIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { cn } from "@/utils/cn";
 import { notificationsService } from "@/services/notifications.service";
+import { preloadRoute } from "@/routes/preload";
 
 interface NavItem {
   to: string;
@@ -45,6 +49,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { to: "/hot-offers", label: "Hot Offers", icon: FireIcon },
       { to: "/app-offers", label: "App Offers", icon: DevicePhoneMobileIcon },
       { to: "/missions", label: "Mission Board", icon: FlagIcon },
+      { to: "/roulette", label: "Roulette", icon: SparklesIcon },
       { to: "/referrals", label: "Referrals", icon: UserPlusIcon },
     ],
   },
@@ -53,13 +58,29 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: "/wallet", label: "Wallet", icon: BanknotesIcon },
       { to: "/redemptions", label: "Redemptions", icon: GiftIcon },
+      { to: "/payment-requests", label: "Payment Requests", icon: QrCodeIcon },
+    ],
+  },
+  {
+    title: "Games",
+    items: [
+      {
+        to: "/game-management",
+        label: "Game Management",
+        icon: PuzzlePieceIcon,
+      },
     ],
   },
   {
     title: "Platform",
     items: [
       { to: "/users", label: "Users", icon: UsersIcon },
-      { to: "/notifications", label: "Notifications", icon: BellIcon, badge: "unread" },
+      {
+        to: "/notifications",
+        label: "Notifications",
+        icon: BellIcon,
+        badge: "unread",
+      },
       { to: "/app-graphics", label: "App Graphics", icon: PhotoIcon },
       { to: "/settings", label: "Settings", icon: Cog6ToothIcon },
     ],
@@ -90,7 +111,9 @@ export const Sidebar = ({
       <div
         className={cn(
           "flex border-b",
-          collapsed ? "flex-col items-center gap-2 px-2 py-3" : "h-14 items-center gap-2.5 px-4",
+          collapsed
+            ? "flex-col items-center gap-2 px-2 py-3"
+            : "h-14 items-center gap-2.5 px-4",
         )}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-[0_0_14px_-2px_hsl(var(--primary)/0.6)]">
@@ -98,7 +121,9 @@ export const Sidebar = ({
         </div>
         {!collapsed && (
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-semibold tracking-tight">RewardHub</p>
+            <p className="truncate text-sm font-semibold tracking-tight">
+              Money Marathon
+            </p>
             <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               Admin
             </p>
@@ -124,7 +149,10 @@ export const Sidebar = ({
       </div>
 
       <nav
-        className={cn("flex-1 overflow-y-auto overflow-x-hidden py-3", collapsed ? "px-2" : "px-3")}
+        className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden py-3",
+          collapsed ? "px-2" : "px-3",
+        )}
       >
         {NAV_GROUPS.map((group, gi) => (
           <div key={group.title}>
@@ -142,13 +170,16 @@ export const Sidebar = ({
             )}
             <div className="space-y-1">
               {group.items.map(({ to, label, icon: Icon, end, badge }) => {
-                const count = badge === "unread" && typeof unread === "number" ? unread : 0;
+                const count =
+                  badge === "unread" && typeof unread === "number" ? unread : 0;
                 return (
                   <NavLink
                     key={to}
                     to={to}
                     end={end}
                     onClick={onNavigate}
+                    onPointerEnter={() => preloadRoute(to)}
+                    onFocus={() => preloadRoute(to)}
                     title={collapsed ? label : undefined}
                     className={({ isActive }) =>
                       cn(
@@ -181,7 +212,9 @@ export const Sidebar = ({
 
       {!collapsed && (
         <div className="border-t p-4">
-          <p className="text-xs text-muted-foreground">RewardHub Admin v0.1</p>
+          <p className="text-xs text-muted-foreground">
+            Money Marathon Admin v1.0
+          </p>
         </div>
       )}
     </div>

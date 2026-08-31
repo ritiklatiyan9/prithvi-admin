@@ -17,7 +17,10 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FiltersBar } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { StatCard } from "@/components/shared/StatCard";
 import { Coins } from "@/components/shared/Coins";
 import { Card } from "@/components/ui/card";
@@ -57,11 +60,12 @@ import { FraudDetection } from "./FraudDetection";
 
 const PAGE_SIZE = 10;
 
-const statusBadge: Record<ContentStatus, "secondary" | "success" | "outline"> = {
-  DRAFT: "secondary",
-  PUBLISHED: "success",
-  ARCHIVED: "outline",
-};
+const statusBadge: Record<ContentStatus, "secondary" | "success" | "outline"> =
+  {
+    DRAFT: "secondary",
+    PUBLISHED: "success",
+    ARCHIVED: "outline",
+  };
 
 const StatusPill = ({ status }: { status: ContentStatus }): JSX.Element => (
   <Badge variant={statusBadge[status]}>{status}</Badge>
@@ -87,15 +91,27 @@ const CATEGORY_COLUMNS: ExportColumn[] = [
   { key: "priority", label: "Priority" },
   { key: "offerCount", label: "Offers" },
   { key: "featured", label: "Featured", format: (v) => (v ? "Yes" : "No") },
-  { key: "hasFeedbackPage", label: "Feedback page", format: (v) => (v ? "Yes" : "No") },
+  {
+    key: "hasFeedbackPage",
+    label: "Feedback page",
+    format: (v) => (v ? "Yes" : "No"),
+  },
   { key: "status", label: "Status" },
-  { key: "createdAt", label: "Created", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "createdAt",
+    label: "Created",
+    format: (v) => formatDateTime(v as string | null),
+  },
 ];
 
 const OFFER_COLUMNS: ExportColumn[] = [
   { key: "title", label: "Title" },
   { key: "appName", label: "App" },
-  { key: "category", label: "Category", format: (v) => (v as { title: string }).title },
+  {
+    key: "category",
+    label: "Category",
+    format: (v) => (v as { title: string }).title,
+  },
   { key: "rewardAmount", label: "Reward coins" },
   { key: "rewardCoins", label: "Coins" },
   { key: "difficulty", label: "Difficulty" },
@@ -103,8 +119,16 @@ const OFFER_COLUMNS: ExportColumn[] = [
   { key: "featured", label: "Featured", format: (v) => (v ? "Yes" : "No") },
   { key: "trending", label: "Trending", format: (v) => (v ? "Yes" : "No") },
   { key: "status", label: "Status" },
-  { key: "expiresAt", label: "Expires", format: (v) => formatDateTime(v as string | null) },
-  { key: "createdAt", label: "Created", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "expiresAt",
+    label: "Expires",
+    format: (v) => formatDateTime(v as string | null),
+  },
+  {
+    key: "createdAt",
+    label: "Created",
+    format: (v) => formatDateTime(v as string | null),
+  },
 ];
 
 const SERIES_COLUMNS: ExportColumn[] = [
@@ -125,14 +149,20 @@ export const HotOffersPage = (): JSX.Element => {
 
   // categories state
   const [categoryDialog, setCategoryDialog] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<OfferCategory | null>(null);
+  const [editingCategory, setEditingCategory] = useState<OfferCategory | null>(
+    null,
+  );
   const [feedbackFor, setFeedbackFor] = useState<OfferCategory | null>(null);
-  const [deleteCategory, setDeleteCategory] = useState<OfferCategory | null>(null);
+  const [deleteCategory, setDeleteCategory] = useState<OfferCategory | null>(
+    null,
+  );
 
   // offers state
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ContentStatus | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<ContentStatus | "ALL">(
+    "ALL",
+  );
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [offerDialog, setOfferDialog] = useState(false);
   const [editingOffer, setEditingOffer] = useState<HotOffer | null>(null);
@@ -147,18 +177,25 @@ export const HotOffersPage = (): JSX.Element => {
   });
 
   const offers = useQuery({
-    queryKey: ["hot-offers", "offers", { page, search, statusFilter, categoryFilter, product: false }],
-    queryFn: () =>
-      hotOffersService.listOffers({
-        page,
-        limit: PAGE_SIZE,
-        // FiltersBar already debounces the search input.
-        search: search.trim() || undefined,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-        category: categoryFilter === "ALL" ? undefined : categoryFilter,
-        // App/brand (product) offers live on the App Offers page.
-        product: false,
-      }),
+    queryKey: [
+      "hot-offers",
+      "offers",
+      { page, search, statusFilter, categoryFilter, product: false },
+    ],
+    queryFn: ({ signal }) =>
+      hotOffersService.listOffers(
+        {
+          page,
+          limit: PAGE_SIZE,
+          // FiltersBar already debounces the search input.
+          search: search.trim() || undefined,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+          category: categoryFilter === "ALL" ? undefined : categoryFilter,
+          // App/brand (product) offers live on the App Offers page.
+          product: false,
+        },
+        signal,
+      ),
     enabled: view === "offers",
   });
 
@@ -226,7 +263,14 @@ export const HotOffersPage = (): JSX.Element => {
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(
-          ["categories", "offers", "submissions", "fraud", "analytics", "settings"] as const
+          [
+            "categories",
+            "offers",
+            "submissions",
+            "fraud",
+            "analytics",
+            "settings",
+          ] as const
         ).map((tab) => (
           <Button
             key={tab}
@@ -241,7 +285,9 @@ export const HotOffersPage = (): JSX.Element => {
         {view === "categories" && (
           <div className="ml-auto">
             <ExportButton
-              rows={(categories.data ?? []) as unknown as Record<string, unknown>[]}
+              rows={
+                (categories.data ?? []) as unknown as Record<string, unknown>[]
+              }
               columns={CATEGORY_COLUMNS}
               fileName="hot-offer-categories"
               title="Hot Offer categories"
@@ -250,7 +296,10 @@ export const HotOffersPage = (): JSX.Element => {
         )}
         {view === "analytics" && (
           <div className="ml-auto flex items-center gap-2">
-            <Select value={range} onValueChange={(value) => setRange(value as AnalyticsRange)}>
+            <Select
+              value={range}
+              onValueChange={(value) => setRange(value as AnalyticsRange)}
+            >
               <SelectTrigger className="w-36">
                 <SelectValue />
               </SelectTrigger>
@@ -261,7 +310,12 @@ export const HotOffersPage = (): JSX.Element => {
               </SelectContent>
             </Select>
             <ExportButton
-              rows={(analytics.data?.series ?? []) as unknown as Record<string, unknown>[]}
+              rows={
+                (analytics.data?.series ?? []) as unknown as Record<
+                  string,
+                  unknown
+                >[]
+              }
               columns={SERIES_COLUMNS}
               fileName="hot-offers-analytics"
               title="Hot Offers analytics timeline"
@@ -302,7 +356,10 @@ export const HotOffersPage = (): JSX.Element => {
               },
               options: [
                 { value: "ALL", label: "All categories" },
-                ...(categories.data ?? []).map((c) => ({ value: c.slug, label: c.title })),
+                ...(categories.data ?? []).map((c) => ({
+                  value: c.slug,
+                  label: c.title,
+                })),
               ],
               placeholder: "Category",
             },
@@ -316,7 +373,12 @@ export const HotOffersPage = (): JSX.Element => {
         >
           <div className="ml-auto">
             <ExportButton
-              rows={(offers.data?.items ?? []) as unknown as Record<string, unknown>[]}
+              rows={
+                (offers.data?.items ?? []) as unknown as Record<
+                  string,
+                  unknown
+                >[]
+              }
               columns={OFFER_COLUMNS}
               fileName="hot-offers"
               title="Hot Offers"
@@ -326,8 +388,8 @@ export const HotOffersPage = (): JSX.Element => {
                   statusFilter !== "ALL" ? `Status: ${statusFilter}` : "",
                   categoryFilter !== "ALL"
                     ? `Category: ${
-                        categories.data?.find((c) => c.slug === categoryFilter)?.title ??
-                        categoryFilter
+                        categories.data?.find((c) => c.slug === categoryFilter)
+                          ?.title ?? categoryFilter
                       }`
                     : "",
                   search.trim() ? `Search: ${search.trim()}` : "",
@@ -360,7 +422,9 @@ export const HotOffersPage = (): JSX.Element => {
                     <TableHead className="text-right">Offers</TableHead>
                     <TableHead>Feedback page</TableHead>
                     <TableHead>Status</TableHead>
-                    {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                    {canWrite && (
+                      <TableHead className="text-right">Actions</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -373,7 +437,9 @@ export const HotOffersPage = (): JSX.Element => {
                               src={category.imageUrl}
                               alt=""
                               className="h-9 w-9 shrink-0 rounded-md border object-cover"
-                              onError={(e) => (e.currentTarget.style.display = "none")}
+                              onError={(e) =>
+                                (e.currentTarget.style.display = "none")
+                              }
                             />
                           )}
                           <div>
@@ -385,15 +451,21 @@ export const HotOffersPage = (): JSX.Element => {
                                 </Badge>
                               )}
                             </p>
-                            <p className="text-xs text-muted-foreground">{category.subtitle}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {category.subtitle}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {category.slug}
                       </TableCell>
-                      <TableCell className="text-right text-sm">{category.priority}</TableCell>
-                      <TableCell className="text-right text-sm">{category.offerCount}</TableCell>
+                      <TableCell className="text-right text-sm">
+                        {category.priority}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {category.offerCount}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="outline"
@@ -401,7 +473,11 @@ export const HotOffersPage = (): JSX.Element => {
                           disabled={!canWrite && !category.hasFeedbackPage}
                           onClick={() => setFeedbackFor(category)}
                         >
-                          {category.hasFeedbackPage ? "Edit page" : canWrite ? "Create page" : "—"}
+                          {category.hasFeedbackPage
+                            ? "Edit page"
+                            : canWrite
+                              ? "Create page"
+                              : "—"}
                         </Button>
                       </TableCell>
                       <TableCell>
@@ -439,7 +515,8 @@ export const HotOffersPage = (): JSX.Element => {
 
       {view === "offers" && (
         <p className="mb-3 text-sm text-muted-foreground">
-          Feedback offers only — app/brand (product) offers moved to the App Offers page.
+          Feedback offers only — app/brand (product) offers moved to the App
+          Offers page.
         </p>
       )}
 
@@ -464,7 +541,9 @@ export const HotOffersPage = (): JSX.Element => {
                       <TableHead className="text-right">Priority</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
-                      {canWrite && <TableHead className="text-right">Actions</TableHead>}
+                      {canWrite && (
+                        <TableHead className="text-right">Actions</TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -474,16 +553,24 @@ export const HotOffersPage = (): JSX.Element => {
                           <div className="flex items-center gap-2.5">
                             {(offer.brandLogoUrl ?? offer.logoUrl) && (
                               <img
-                                src={offer.brandLogoUrl ?? offer.logoUrl ?? undefined}
+                                src={
+                                  offer.brandLogoUrl ??
+                                  offer.logoUrl ??
+                                  undefined
+                                }
                                 alt=""
                                 className="h-9 w-9 shrink-0 rounded-md border object-cover"
-                                onError={(e) => (e.currentTarget.style.display = "none")}
+                                onError={(e) =>
+                                  (e.currentTarget.style.display = "none")
+                                }
                               />
                             )}
                             <div className="min-w-0">
                               <p className="truncate font-medium">
                                 {offer.title}
-                                {offer.isProduct && <Badge className="ml-2">Product</Badge>}
+                                {offer.isProduct && (
+                                  <Badge className="ml-2">Product</Badge>
+                                )}
                                 {offer.featured && (
                                   <Badge className="ml-2" variant="info">
                                     Featured
@@ -496,11 +583,17 @@ export const HotOffersPage = (): JSX.Element => {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm">{offer.category.title}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">
-                          {offer.rewardLabel ?? <Coins value={offer.rewardAmount} />}
+                        <TableCell className="text-sm">
+                          {offer.category.title}
                         </TableCell>
-                        <TableCell className="text-right text-sm">{offer.priority}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">
+                          {offer.rewardLabel ?? (
+                            <Coins value={offer.rewardAmount} />
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {offer.priority}
+                        </TableCell>
                         <TableCell>
                           <StatusPill status={offer.status} />
                         </TableCell>
@@ -542,8 +635,8 @@ export const HotOffersPage = (): JSX.Element => {
       {view === "submissions" && (
         <>
           <p className="mb-3 text-sm text-muted-foreground">
-            Feedback-offer submissions only — app/brand offer submissions are reviewed on the App
-            Offers page.
+            Feedback-offer submissions only — app/brand offer submissions are
+            reviewed on the App Offers page.
           </p>
           <SubmissionsReview product={false} />
         </>
@@ -566,7 +659,11 @@ export const HotOffersPage = (): JSX.Element => {
               label="Clicks"
               value={analytics.data?.totals.clicks ?? 0}
               icon={CursorArrowRaysIcon}
-              hint={analytics.data ? `CTR ${percent(analytics.data.totals.ctr)}` : undefined}
+              hint={
+                analytics.data
+                  ? `CTR ${percent(analytics.data.totals.ctr)}`
+                  : undefined
+              }
               loading={analytics.isLoading}
             />
             <StatCard
@@ -614,9 +711,15 @@ export const HotOffersPage = (): JSX.Element => {
                     <TableBody>
                       {analytics.data[key].map((row) => (
                         <TableRow key={row.id}>
-                          <TableCell className="max-w-48 truncate text-sm">{row.title}</TableCell>
-                          <TableCell className="text-right text-sm">{row.views}</TableCell>
-                          <TableCell className="text-right text-sm">{row.clicks}</TableCell>
+                          <TableCell className="max-w-48 truncate text-sm">
+                            {row.title}
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {row.views}
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {row.clicks}
+                          </TableCell>
                           <TableCell className="text-right text-sm font-medium">
                             {row.downloads}
                           </TableCell>
@@ -645,9 +748,15 @@ export const HotOffersPage = (): JSX.Element => {
                   {analytics.data.series.map((row) => (
                     <TableRow key={row.bucket}>
                       <TableCell className="text-sm">{row.bucket}</TableCell>
-                      <TableCell className="text-right text-sm">{row.views}</TableCell>
-                      <TableCell className="text-right text-sm">{row.clicks}</TableCell>
-                      <TableCell className="text-right text-sm">{row.downloads}</TableCell>
+                      <TableCell className="text-right text-sm">
+                        {row.views}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {row.clicks}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">
+                        {row.downloads}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -681,7 +790,9 @@ export const HotOffersPage = (): JSX.Element => {
         confirmLabel="Delete"
         destructive
         loading={removeCategory.isPending}
-        onConfirm={() => deleteCategory && removeCategory.mutate(deleteCategory.id)}
+        onConfirm={() =>
+          deleteCategory && removeCategory.mutate(deleteCategory.id)
+        }
       />
       <ConfirmDialog
         open={deleteOffer !== null}

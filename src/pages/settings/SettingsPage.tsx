@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -15,14 +15,24 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { usersService } from "@/services/users.service";
 import { authService } from "@/services/auth.service";
+import { settingsService } from "@/services/settings.service";
 import { apiErrorMessage } from "@/services/api-client";
 import { useAuthStore } from "@/store/auth.store";
 import { useThemeStore } from "@/store/theme.store";
 import { LevelsCoinsSettings } from "./LevelsCoinsSettings";
+import { RewardProvidersSettings } from "./RewardProvidersSettings";
+import { CoinPurchaseSettings } from "./CoinPurchaseSettings";
+
+/** Settings-registry key for the Telegram link (edited via the settings PATCH flow). */
+const TELEGRAM_SETTING_KEY = "social.telegramUrl";
+/** Settings-registry key for the LinkedIn link (edited via the settings PATCH flow). */
+const LINKEDIN_SETTING_KEY = "social.linkedinUrl";
 
 const TABS = [
   { key: "account", label: "Account" },
   { key: "levels", label: "Levels & Coins" },
+  { key: "add-coins", label: "Add Coins" },
+  { key: "providers", label: "Reward Providers" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
@@ -38,6 +48,8 @@ export const SettingsPage = (): JSX.Element => {
   const { user, setUser, clear } = useAuthStore();
   const { theme, setTheme } = useThemeStore();
   const [tab, setTab] = useState<Tab>("account");
+  const canEdit = user?.role === "SUPER_ADMIN";
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -74,6 +86,42 @@ export const SettingsPage = (): JSX.Element => {
     onError: (error) => toast.error(apiErrorMessage(error)),
   });
 
+  const { data: settingsData } = useQuery({
+    queryKey: ["settings"],
+    queryFn: settingsService.list,
+  });
+  const telegramSetting = settingsData?.find((s) => s.key === TELEGRAM_SETTING_KEY);
+  const [telegramUrl, setTelegramUrl] = useState("");
+  useEffect(() => {
+    setTelegramUrl(telegramSetting?.value ?? "");
+  }, [telegramSetting?.value]);
+  const telegramDirty = telegramUrl !== (telegramSetting?.value ?? "");
+
+  const saveTelegram = useMutation({
+    mutationFn: () => settingsService.update({ [TELEGRAM_SETTING_KEY]: telegramUrl }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Telegram link saved");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
+  const linkedinSetting = settingsData?.find((s) => s.key === LINKEDIN_SETTING_KEY);
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  useEffect(() => {
+    setLinkedinUrl(linkedinSetting?.value ?? "");
+  }, [linkedinSetting?.value]);
+  const linkedinDirty = linkedinUrl !== (linkedinSetting?.value ?? "");
+
+  const saveLinkedin = useMutation({
+    mutationFn: () => settingsService.update({ [LINKEDIN_SETTING_KEY]: linkedinUrl }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("LinkedIn link saved");
+    },
+    onError: (error) => toast.error(apiErrorMessage(error)),
+  });
+
   return (
     <div className="max-w-2xl">
       <PageHeader
@@ -96,11 +144,15 @@ export const SettingsPage = (): JSX.Element => {
 
       {tab === "levels" && <LevelsCoinsSettings />}
 
+      {tab === "add-coins" && <CoinPurchaseSettings />}
+
+      {tab === "providers" && <RewardProvidersSettings />}
+
       <div className={tab === "account" ? "space-y-6" : "hidden"}>
         <Card>
           <CardHeader>
             <CardTitle>Profile</CardTitle>
-            <CardDescription>How you appear across RewardHub.</CardDescription>
+            <CardDescription>How you appear across Money Marathon.</CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -172,7 +224,7 @@ export const SettingsPage = (): JSX.Element => {
         <Card>
           <CardHeader>
             <CardTitle>Sessions</CardTitle>
-            <CardDescription>Sign out of RewardHub everywhere.</CardDescription>
+            <CardDescription>Sign out of Money Marathon everywhere.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -186,6 +238,73 @@ export const SettingsPage = (): JSX.Element => {
               >
                 {logoutAll.isPending ? "Working…" : "Sign out everywhere"}
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Telegram</CardTitle>
+            <CardDescription>
+              Link shown as a card at the bottom of the app&apos;s Home screen. Leave empty to hide it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="telegram-url">Telegram URL</Label>
+                <Input
+                  id="telegram-url"
+                  placeholder="https://t.me/yourchannel"
+                  value={telegramUrl}
+                  disabled={!canEdit}
+                  onChange={(event) => setTelegramUrl(event.target.value)}
+                />
+              </div>
+              {canEdit && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => saveTelegram.mutate()}
+                    disabled={!telegramDirty || saveTelegram.isPending}
+                  >
+                    {saveTelegram.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>LinkedIn</CardTitle>
+            <CardDescription>
+              Link shown as a card at the bottom of the app&apos;s Home screen, below Telegram.
+              Leave empty to hide it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="linkedin-url">LinkedIn URL</Label>
+                <Input
+                  id="linkedin-url"
+                  placeholder="https://www.linkedin.com/company/yourpage"
+                  value={linkedinUrl}
+                  disabled={!canEdit}
+                  onChange={(event) => setLinkedinUrl(event.target.value)}
+                />
+              </div>
+              {canEdit && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => saveLinkedin.mutate()}
+                    disabled={!linkedinDirty || saveLinkedin.isPending}
+                  >
+                    {saveLinkedin.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

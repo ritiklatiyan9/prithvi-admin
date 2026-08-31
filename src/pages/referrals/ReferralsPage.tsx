@@ -2,8 +2,14 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
-import { FiltersBar, type DateRangeValue } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  FiltersBar,
+  type DateRangeValue,
+} from "@/components/shared/FiltersBar";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { Coins } from "@/components/shared/Coins";
@@ -28,7 +34,11 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { key: "referrerEmail", label: "Referrer email" },
   { key: "referralCode", label: "Referral code" },
   { key: "creditedPoints", label: "Coins credited" },
-  { key: "referredAt", label: "Date", format: (v) => formatDateTime(v as string | null) },
+  {
+    key: "referredAt",
+    label: "Date",
+    format: (v) => formatDateTime(v as string | null),
+  },
 ];
 
 export const ReferralsPage = (): JSX.Element => {
@@ -38,21 +48,24 @@ export const ReferralsPage = (): JSX.Element => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["referrals", { page, search, range }],
-    queryFn: () =>
-      referralsService.list({
-        page,
-        limit: PAGE_SIZE,
-        search: search.trim() || undefined,
-        from: range.from || undefined,
-        to: range.to || undefined,
-      }),
+    queryFn: ({ signal }) =>
+      referralsService.list(
+        {
+          page,
+          limit: PAGE_SIZE,
+          search: search.trim() || undefined,
+          from: range.from || undefined,
+          to: range.to || undefined,
+        },
+        signal,
+      ),
   });
 
-  const rows = data?.items ?? [];
+  const rows = data?.items;
 
   const exportRows = useMemo(
     () =>
-      rows.map((row) => ({
+      (rows ?? []).map((row) => ({
         referredName: row.referred.name,
         referredEmail: row.referred.email,
         referrerName: row.referrer?.name ?? "—",
@@ -104,7 +117,9 @@ export const ReferralsPage = (): JSX.Element => {
           filterSummary={
             [
               search.trim() ? `Search: ${search.trim()}` : "",
-              range.from || range.to ? `Date: ${range.from || "…"} – ${range.to || "…"}` : "",
+              range.from || range.to
+                ? `Date: ${range.from || "…"} – ${range.to || "…"}`
+                : "",
             ]
               .filter(Boolean)
               .join(" · ") || undefined
@@ -115,11 +130,13 @@ export const ReferralsPage = (): JSX.Element => {
       <Card>
         {isLoading ? (
           <TableSkeleton />
-        ) : rows.length === 0 ? (
+        ) : !rows || rows.length === 0 ? (
           <EmptyState
             title="No referrals yet"
             description={
-              hasFilters ? "Nothing matches this filter." : "Referred signups will appear here."
+              hasFilters
+                ? "Nothing matches this filter."
+                : "Referred signups will appear here."
             }
           />
         ) : (
@@ -128,7 +145,9 @@ export const ReferralsPage = (): JSX.Element => {
               <TableRow>
                 <TableHead>Referred user</TableHead>
                 <TableHead className="hidden md:table-cell">Referrer</TableHead>
-                <TableHead className="hidden sm:table-cell">Referral code</TableHead>
+                <TableHead className="hidden sm:table-cell">
+                  Referral code
+                </TableHead>
                 <TableHead className="text-right">Coins credited</TableHead>
                 <TableHead className="hidden lg:table-cell">Date</TableHead>
               </TableRow>
@@ -138,12 +157,16 @@ export const ReferralsPage = (): JSX.Element => {
                 <TableRow key={row.referred.id}>
                   <TableCell className="max-w-56">
                     <p className="truncate font-medium">{row.referred.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{row.referred.email}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {row.referred.email}
+                    </p>
                   </TableCell>
                   <TableCell className="hidden max-w-56 md:table-cell">
                     {row.referrer ? (
                       <>
-                        <p className="truncate font-medium">{row.referrer.name}</p>
+                        <p className="truncate font-medium">
+                          {row.referrer.name}
+                        </p>
                         <p className="truncate text-xs text-muted-foreground">
                           {row.referrer.email}
                         </p>
@@ -156,7 +179,11 @@ export const ReferralsPage = (): JSX.Element => {
                     {row.referrer?.referralCode ?? "—"}
                   </TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {row.creditedPoints !== null ? <Coins value={row.creditedPoints} /> : "—"}
+                    {row.creditedPoints !== null ? (
+                      <Coins value={row.creditedPoints} />
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
                     {formatDateTime(row.referred.referredAt)}

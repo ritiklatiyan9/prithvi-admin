@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import { formatDateTime } from "@/utils/format";
 
 export interface ExportColumn {
@@ -10,28 +9,38 @@ export interface ExportColumn {
   format?: (value: unknown, row: Record<string, unknown>) => string;
 }
 
-const cellValue = (row: Record<string, unknown>, column: ExportColumn): unknown =>
+const cellValue = (
+  row: Record<string, unknown>,
+  column: ExportColumn,
+): unknown =>
   column.format ? column.format(row[column.key], row) : (row[column.key] ?? "");
 
 export const exportToExcel = (
   rows: Record<string, unknown>[],
   columns: ExportColumn[],
   fileName: string,
-): void => {
-  const sheet = XLSX.utils.json_to_sheet(
-    rows.map((row) => Object.fromEntries(columns.map((col) => [col.label, cellValue(row, col)]))),
-    { header: columns.map((col) => col.label) },
+): Promise<void> => {
+  const records = rows.map((row) =>
+    Object.fromEntries(
+      columns.map((column) => [column.label, cellValue(row, column)]),
+    ),
   );
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, "Export");
-  XLSX.writeFile(book, `${fileName}.xlsx`);
+  const headers = columns.map((column) => column.label);
+
+  // XLSX is one of the largest dependencies in the panel. Load it only when
+  // an administrator actually chooses Excel, never while opening a page.
+  return import("./excel-export").then(({ writeExcelFile }) =>
+    writeExcelFile(records, headers, fileName),
+  );
 };
 
 const escapeHtml = (value: unknown): string =>
   String(value ?? "").replace(
     /[&<>"']/g,
     (ch) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] as string,
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        ch
+      ] as string,
   );
 
 /**
@@ -48,7 +57,9 @@ export const exportToPdf = (
   const win = window.open("", "_blank");
   if (!win) return false;
 
-  const head = columns.map((col) => `<th>${escapeHtml(col.label)}</th>`).join("");
+  const head = columns
+    .map((col) => `<th>${escapeHtml(col.label)}</th>`)
+    .join("");
   const body = rows
     .map(
       (row) =>

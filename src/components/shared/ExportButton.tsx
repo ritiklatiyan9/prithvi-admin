@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowDownTrayIcon,
@@ -40,6 +41,7 @@ export const ExportButton = ({
   page,
   className,
 }: ExportButtonProps): JSX.Element => {
+  const [exporting, setExporting] = useState(false);
   const empty = rows.length === 0;
   const name = page ? `${fileName}-page${page}` : fileName;
   const pdfTitle = page ? `${title} (page ${page})` : title;
@@ -47,15 +49,28 @@ export const ExportButton = ({
   return (
     // ponytail: native title attr as the empty-state tooltip; span wrapper because
     // disabled buttons have pointer-events:none
-    <span title={empty ? "No rows to export" : undefined} className={cn("inline-flex", className)}>
+    <span
+      title={empty ? "No rows to export" : undefined}
+      className={cn("inline-flex", className)}
+    >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" disabled={empty}>
-            <ArrowDownTrayIcon className="mr-2 h-4 w-4" /> Export
+          <Button variant="outline" disabled={empty || exporting}>
+            <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+            {exporting ? "Exporting…" : "Export"}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => exportToExcel(rows, columns, name)}>
+          <DropdownMenuItem
+            onSelect={() => {
+              setExporting(true);
+              void exportToExcel(rows, columns, name)
+                .catch(() =>
+                  toast.error("Excel export failed. Please try again."),
+                )
+                .finally(() => setExporting(false));
+            }}
+          >
             <TableCellsIcon /> Excel (.xlsx)
           </DropdownMenuItem>
           <DropdownMenuItem

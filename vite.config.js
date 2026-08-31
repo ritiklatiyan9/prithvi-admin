@@ -16,7 +16,6 @@ export default defineConfig({
             output: {
                 manualChunks: {
                     react: ["react", "react-dom", "react-router-dom"],
-                    charts: ["recharts"],
                     firebase: ["firebase/app", "firebase/auth"],
                     vendor: ["@tanstack/react-query", "axios", "react-hook-form", "zod", "zustand"],
                 },

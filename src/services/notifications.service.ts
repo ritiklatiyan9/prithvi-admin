@@ -1,16 +1,27 @@
 import { apiClient } from "./api-client";
 import type { ApiSuccess, Paginated } from "@/types/api";
-import type { AppNotification, PushLog, SendNotificationInput } from "@/types/domain";
+import type {
+  AppNotification,
+  PushLog,
+  SendNotificationInput,
+} from "@/types/domain";
 
 export const notificationsService = {
-  list: async (params: {
-    page: number;
-    limit: number;
-    unreadOnly?: boolean;
-  }): Promise<Paginated<AppNotification>> => {
-    const { data } = await apiClient.get<ApiSuccess<AppNotification[]>>("/notifications", {
-      params,
-    });
+  list: async (
+    params: {
+      page: number;
+      limit: number;
+      unreadOnly?: boolean;
+    },
+    signal?: AbortSignal,
+  ): Promise<Paginated<AppNotification>> => {
+    const { data } = await apiClient.get<ApiSuccess<AppNotification[]>>(
+      "/notifications",
+      {
+        params,
+        signal,
+      },
+    );
     return { items: data.data, meta: data.meta! };
   },
 
@@ -38,10 +49,17 @@ export const notificationsService = {
   },
 
   /** Admin send history with delivery outcomes. */
-  history: async (params: { page: number; limit: number }): Promise<Paginated<PushLog>> => {
-    const { data } = await apiClient.get<ApiSuccess<PushLog[]>>("/notifications/history", {
-      params,
-    });
+  history: async (
+    params: { page: number; limit: number },
+    signal?: AbortSignal,
+  ): Promise<Paginated<PushLog>> => {
+    const { data } = await apiClient.get<ApiSuccess<PushLog[]>>(
+      "/notifications/history",
+      {
+        params,
+        signal,
+      },
+    );
     return { items: data.data, meta: data.meta! };
   },
 };

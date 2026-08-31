@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { queryClient } from "@/services/query-client";
 import type { AuthTokens, User } from "@/types/user";
 
 interface AuthState {
@@ -17,11 +18,23 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       refreshToken: null,
-      setAuth: ({ accessToken, refreshToken, user }) => set({ accessToken, refreshToken, user }),
+      setAuth: ({ accessToken, refreshToken, user }) =>
+        set({ accessToken, refreshToken, user }),
       setUser: (user) => set({ user }),
-      clear: () => set({ user: null, accessToken: null, refreshToken: null }),
+      clear: () => {
+        // Never expose one administrator's cached API data to the next session.
+        queryClient.clear();
+        set({ user: null, accessToken: null, refreshToken: null });
+      },
     }),
-    { name: "rewardhub-admin-auth" },
+    {
+      name: "rewardhub-admin-auth",
+      partialize: ({ user, accessToken, refreshToken }) => ({
+        user,
+        accessToken,
+        refreshToken,
+      }),
+    },
   ),
 );
 

@@ -22,7 +22,9 @@ export const hotOffersService = {
   // ---- categories ----
 
   listCategories: async (): Promise<OfferCategory[]> => {
-    const { data } = await apiClient.get<ApiSuccess<OfferCategory[]>>(`${BASE}/categories`);
+    const { data } = await apiClient.get<ApiSuccess<OfferCategory[]>>(
+      `${BASE}/categories`,
+    );
     return data.data;
   },
 
@@ -34,7 +36,10 @@ export const hotOffersService = {
     return data.data;
   },
 
-  updateCategory: async (id: string, input: OfferCategoryInput): Promise<OfferCategory> => {
+  updateCategory: async (
+    id: string,
+    input: OfferCategoryInput,
+  ): Promise<OfferCategory> => {
     const { data } = await apiClient.put<ApiSuccess<OfferCategory>>(
       `${BASE}/categories/${id}`,
       input,
@@ -48,7 +53,9 @@ export const hotOffersService = {
 
   // ---- feedback pages ----
 
-  getFeedbackPage: async (categorySlug: string): Promise<FeedbackPage | null> => {
+  getFeedbackPage: async (
+    categorySlug: string,
+  ): Promise<FeedbackPage | null> => {
     const { data } = await apiClient.get<ApiSuccess<FeedbackPage | null>>(
       `${BASE}/categories/${categorySlug}/feedback-page`,
     );
@@ -68,30 +75,47 @@ export const hotOffersService = {
 
   // ---- offers ----
 
-  listOffers: async (params: {
-    page: number;
-    limit: number;
-    search?: string;
-    category?: string;
-    status?: ContentStatus;
-    /** true = product offers only, false = feedback offers only, omitted = all. */
-    product?: boolean;
-  }): Promise<Paginated<HotOffer>> => {
-    const { data } = await apiClient.get<ApiSuccess<HotOffer[]>>(`${BASE}/offers`, { params });
+  listOffers: async (
+    params: {
+      page: number;
+      limit: number;
+      search?: string;
+      category?: string;
+      status?: ContentStatus;
+      /** true = product offers only, false = feedback offers only, omitted = all. */
+      product?: boolean;
+    },
+    signal?: AbortSignal,
+  ): Promise<Paginated<HotOffer>> => {
+    const { data } = await apiClient.get<ApiSuccess<HotOffer[]>>(
+      `${BASE}/offers`,
+      {
+        params,
+        signal,
+      },
+    );
     return { items: data.data, meta: data.meta! };
   },
 
   getOffer: async (id: string): Promise<HotOfferDetails> => {
-    const { data } = await apiClient.get<ApiSuccess<HotOfferDetails>>(`${BASE}/offers/${id}`);
+    const { data } = await apiClient.get<ApiSuccess<HotOfferDetails>>(
+      `${BASE}/offers/${id}`,
+    );
     return data.data;
   },
 
   createOffer: async (input: HotOfferInput): Promise<HotOfferDetails> => {
-    const { data } = await apiClient.post<ApiSuccess<HotOfferDetails>>(`${BASE}/offers`, input);
+    const { data } = await apiClient.post<ApiSuccess<HotOfferDetails>>(
+      `${BASE}/offers`,
+      input,
+    );
     return data.data;
   },
 
-  updateOffer: async (id: string, input: HotOfferInput): Promise<HotOfferDetails> => {
+  updateOffer: async (
+    id: string,
+    input: HotOfferInput,
+  ): Promise<HotOfferDetails> => {
     const { data } = await apiClient.put<ApiSuccess<HotOfferDetails>>(
       `${BASE}/offers/${id}`,
       input,
@@ -105,22 +129,32 @@ export const hotOffersService = {
 
   // ---- proof submissions ----
 
-  listSubmissions: async (params: {
-    page: number;
-    limit: number;
-    status?: SubmissionStatus;
-    /** Filter by the submission's offer.isProduct; omitted = all. */
-    product?: boolean;
-  }): Promise<Paginated<OfferSubmission>> => {
-    const { data } = await apiClient.get<ApiSuccess<OfferSubmission[]>>(`${BASE}/submissions`, {
-      params,
-    });
+  listSubmissions: async (
+    params: {
+      page: number;
+      limit: number;
+      status?: SubmissionStatus;
+      /** Filter by the submission's offer.isProduct; omitted = all. */
+      product?: boolean;
+    },
+    signal?: AbortSignal,
+  ): Promise<Paginated<OfferSubmission>> => {
+    const { data } = await apiClient.get<ApiSuccess<OfferSubmission[]>>(
+      `${BASE}/submissions`,
+      {
+        params,
+        signal,
+      },
+    );
     return { items: data.data, meta: data.meta! };
   },
 
   reviewSubmission: async (
     id: string,
-    input: { action: "APPROVE" | "REJECT" | "NEED_MORE_PROOF"; reviewNote?: string },
+    input: {
+      action: "APPROVE" | "REJECT" | "NEED_MORE_PROOF";
+      reviewNote?: string;
+    },
   ): Promise<OfferSubmission> => {
     const { data } = await apiClient.patch<ApiSuccess<OfferSubmission>>(
       `${BASE}/submissions/${id}/review`,
@@ -129,19 +163,32 @@ export const hotOffersService = {
     return data.data;
   },
 
+  /** Let the user participate in this offer again (finished -> CANCELLED). */
+  reopenSubmission: async (id: string): Promise<OfferSubmission> => {
+    const { data } = await apiClient.patch<ApiSuccess<OfferSubmission>>(
+      `${BASE}/submissions/${id}/reopen`,
+    );
+    return data.data;
+  },
+
   // ---- fraud detection ----
 
   fraudOverview: async (): Promise<FraudOverview> => {
-    const { data } = await apiClient.get<ApiSuccess<FraudOverview>>(`${BASE}/fraud`);
+    const { data } = await apiClient.get<ApiSuccess<FraudOverview>>(
+      `${BASE}/fraud`,
+    );
     return data.data;
   },
 
   // ---- analytics ----
 
   analytics: async (range: AnalyticsRange): Promise<HotOffersAnalytics> => {
-    const { data } = await apiClient.get<ApiSuccess<HotOffersAnalytics>>(`${BASE}/analytics`, {
-      params: { range },
-    });
+    const { data } = await apiClient.get<ApiSuccess<HotOffersAnalytics>>(
+      `${BASE}/analytics`,
+      {
+        params: { range },
+      },
+    );
     return data.data;
   },
 
@@ -150,9 +197,14 @@ export const hotOffersService = {
   uploadImage: async (file: File): Promise<string> => {
     const form = new FormData();
     form.append("file", file);
-    const { data } = await apiClient.post<ApiSuccess<{ url: string }>>("/uploads", form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const { data } = await apiClient.post<ApiSuccess<{ url: string }>>(
+      "/uploads",
+      form,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 60_000,
+      },
+    );
     return data.data.url;
   },
 };

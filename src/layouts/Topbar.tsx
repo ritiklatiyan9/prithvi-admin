@@ -1,5 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useIsFetching, useQuery } from "@tanstack/react-query";
 import {
   ArrowRightStartOnRectangleIcon,
   Bars3Icon,
@@ -28,8 +28,13 @@ interface TopbarProps {
 
 export const Topbar = ({ onMenuClick }: TopbarProps): JSX.Element => {
   const navigate = useNavigate();
-  const { user, refreshToken, clear } = useAuthStore();
-  const { theme, toggle } = useThemeStore();
+  const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
+  const clear = useAuthStore((state) => state.clear);
+  const theme = useThemeStore((state) => state.theme);
+  const toggle = useThemeStore((state) => state.toggle);
+  const activeRequests = useIsFetching();
 
   const { data: unread } = useQuery({
     queryKey: ["notifications", "unread-count"],
@@ -37,24 +42,47 @@ export const Topbar = ({ onMenuClick }: TopbarProps): JSX.Element => {
     refetchInterval: 60_000,
   });
 
-  const handleLogout = async (): Promise<void> => {
-    try {
-      if (refreshToken) await authService.logout(refreshToken);
-    } finally {
-      clear();
-      navigate("/login", { replace: true });
-    }
+  const handleLogout = (): void => {
+    // Start the server/Firebase cleanup with captured credentials, then update
+    // the UI immediately instead of making navigation wait on the network.
+    const logoutRequest = refreshToken
+      ? authService.logout(refreshToken, accessToken)
+      : Promise.resolve();
+    clear();
+    navigate("/login", { replace: true });
+    void logoutRequest;
   };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
+      {activeRequests > 0 && (
+        <div
+          className="absolute inset-x-0 bottom-0 h-0.5 animate-pulse bg-primary"
+          role="progressbar"
+          aria-label="Updating admin data"
+        />
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden"
+        onClick={onMenuClick}
+      >
         <Bars3Icon className="h-5 w-5" />
       </Button>
 
       <div className="ml-auto flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" onClick={toggle} title="Toggle theme">
-          {theme === "dark" ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          title="Toggle theme"
+        >
+          {theme === "dark" ? (
+            <SunIcon className="h-5 w-5" />
+          ) : (
+            <MoonIcon className="h-5 w-5" />
+          )}
         </Button>
 
         <Button variant="ghost" size="icon" asChild title="Notifications">
@@ -72,7 +100,11 @@ export const Topbar = ({ onMenuClick }: TopbarProps): JSX.Element => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 px-2">
               {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+                <img
+                  src={user.avatarUrl}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover"
+                />
               ) : (
                 <UserCircleIcon className="h-7 w-7 text-muted-foreground" />
               )}
@@ -84,13 +116,15 @@ export const Topbar = ({ onMenuClick }: TopbarProps): JSX.Element => {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <p className="truncate">{user?.name}</p>
-              <p className="truncate text-xs font-normal text-muted-foreground">{user?.email}</p>
+              <p className="truncate text-xs font-normal text-muted-foreground">
+                {user?.email}
+              </p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => navigate("/settings")}>
               <UserCircleIcon /> Profile & settings
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => void handleLogout()}>
+            <DropdownMenuItem onSelect={handleLogout}>
               <ArrowRightStartOnRectangleIcon /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

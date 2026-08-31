@@ -104,7 +104,7 @@ export const CategoryFormDialog = ({
               id="cat-title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Feedback Zone"
+              placeholder="Reward Zone"
             />
           </div>
 

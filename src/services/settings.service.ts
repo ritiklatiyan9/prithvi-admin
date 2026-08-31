@@ -11,6 +11,10 @@ export interface RewardSetting {
   label: string;
   description: string;
   isDefault: boolean;
+  /** Write-only credential — `value` is always "" from the API. */
+  secret: boolean;
+  /** Whether a non-empty value is stored (for showing "configured" on secrets). */
+  hasValue: boolean;
 }
 
 export const settingsService = {

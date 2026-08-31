@@ -24,6 +24,7 @@ import {
 import { hotOffersService } from "@/services/hot-offers.service";
 import { apiErrorMessage } from "@/services/api-client";
 import type {
+  CompletedBehavior,
   ContentStatus,
   HotOffer,
   OfferCategory,
@@ -97,6 +98,7 @@ export const OfferFormDialog = ({
   const [dailyLimit, setDailyLimit] = useState("");
   const [priority, setPriority] = useState(0);
   const [status, setStatus] = useState<ContentStatus>("DRAFT");
+  const [completedBehavior, setCompletedBehavior] = useState<CompletedBehavior>("SHOW");
 
   const details = useQuery({
     queryKey: ["hot-offers", "offer", offer?.id],
@@ -138,6 +140,7 @@ export const OfferFormDialog = ({
     setDailyLimit(d?.dailyLimit != null ? String(d.dailyLimit) : "");
     setPriority(d?.priority ?? 0);
     setStatus(d?.status ?? "DRAFT");
+    setCompletedBehavior(d?.completedBehavior ?? "SHOW");
   }, [open, offer, categories, details.data, lockProduct]);
 
   const numOrNull = (value: string): number | null =>
@@ -175,6 +178,7 @@ export const OfferFormDialog = ({
         maxUsers: numOrNull(maxUsers),
         maxRewards: numOrNull(maxRewards),
         dailyLimit: numOrNull(dailyLimit),
+        completedBehavior,
         priority,
         status,
       };
@@ -514,6 +518,27 @@ export const OfferFormDialog = ({
                   </Label>
                 </div>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>After a user completes this offer</Label>
+              <Select
+                value={completedBehavior}
+                onValueChange={(value) => setCompletedBehavior(value as CompletedBehavior)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SHOW">Keep showing the offer normally</SelectItem>
+                  <SelectItem value="HIDE">Hide the offer from them</SelectItem>
+                  <SelectItem value="SHOW_COMPLETED">
+                    Show with a disabled &quot;Completed&quot; button
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Applies once their proof is approved. Other users are unaffected.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Switch

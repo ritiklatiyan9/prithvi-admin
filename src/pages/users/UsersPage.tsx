@@ -11,7 +11,10 @@ import {
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { FiltersBar } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -53,7 +56,11 @@ const exportColumns: ExportColumn[] = [
   { key: "name", label: "Name" },
   { key: "email", label: "Email" },
   { key: "role", label: "Role" },
-  { key: "isActive", label: "Status", format: (v) => (v ? "Active" : "Deactivated") },
+  {
+    key: "isActive",
+    label: "Status",
+    format: (v) => (v ? "Active" : "Deactivated"),
+  },
   { key: "createdAt", label: "Joined", format: (v) => formatDate(v as string) },
 ];
 
@@ -68,13 +75,16 @@ export const UsersPage = (): JSX.Element => {
   // FiltersBar debounces the search input; `search` already holds the settled value.
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "users", { page, search, role }],
-    queryFn: () =>
-      adminService.listUsers({
-        page,
-        limit: PAGE_SIZE,
-        search: search.trim() || undefined,
-        role: role === "ALL" ? undefined : role,
-      }),
+    queryFn: ({ signal }) =>
+      adminService.listUsers(
+        {
+          page,
+          limit: PAGE_SIZE,
+          search: search.trim() || undefined,
+          role: role === "ALL" ? undefined : role,
+        },
+        signal,
+      ),
   });
 
   const invalidate = (): void => {
@@ -96,7 +106,11 @@ export const UsersPage = (): JSX.Element => {
       adminService.updateUserStatus(id, isActive),
     onSuccess: (user) => {
       invalidate();
-      toast.success(user.isActive ? `${user.email} reactivated` : `${user.email} deactivated`);
+      toast.success(
+        user.isActive
+          ? `${user.email} reactivated`
+          : `${user.email} deactivated`,
+      );
       setStatusTarget(null);
     },
     onError: (error) => toast.error(apiErrorMessage(error)),
@@ -106,7 +120,10 @@ export const UsersPage = (): JSX.Element => {
 
   return (
     <div>
-      <PageHeader title="Users" description="Manage accounts, roles, and access." />
+      <PageHeader
+        title="Users"
+        description="Manage accounts, roles, and access."
+      />
 
       <FiltersBar
         search={{
@@ -149,7 +166,10 @@ export const UsersPage = (): JSX.Element => {
           title="Users"
           page={page}
           filterSummary={
-            [search.trim() && `Search: ${search.trim()}`, role !== "ALL" && `Role: ${role}`]
+            [
+              search.trim() && `Search: ${search.trim()}`,
+              role !== "ALL" && `Role: ${role}`,
+            ]
               .filter(Boolean)
               .join(" · ") || undefined
           }
@@ -160,7 +180,10 @@ export const UsersPage = (): JSX.Element => {
         {isLoading ? (
           <TableSkeleton />
         ) : !data || data.items.length === 0 ? (
-          <EmptyState title="No users found" description="Try a different search or filter." />
+          <EmptyState
+            title="No users found"
+            description="Try a different search or filter."
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -194,7 +217,9 @@ export const UsersPage = (): JSX.Element => {
                           <p className="max-w-48 truncate font-medium">
                             {user.name}
                             {isSelf && (
-                              <span className="ml-1.5 text-xs text-muted-foreground">(you)</span>
+                              <span className="ml-1.5 text-xs text-muted-foreground">
+                                (you)
+                              </span>
                             )}
                           </p>
                           <p className="max-w-48 truncate text-xs text-muted-foreground">
@@ -207,7 +232,9 @@ export const UsersPage = (): JSX.Element => {
                       <Badge variant={roleBadge[user.role]}>{user.role}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.isActive ? "success" : "destructive"}>
+                      <Badge
+                        variant={user.isActive ? "success" : "destructive"}
+                      >
                         {user.isActive ? "Active" : "Deactivated"}
                       </Badge>
                     </TableCell>
@@ -226,14 +253,24 @@ export const UsersPage = (): JSX.Element => {
                             <DropdownMenuLabel>Change role</DropdownMenuLabel>
                             {user.role !== "USER" && (
                               <DropdownMenuItem
-                                onSelect={() => roleMutation.mutate({ id: user.id, next: "USER" })}
+                                onSelect={() =>
+                                  roleMutation.mutate({
+                                    id: user.id,
+                                    next: "USER",
+                                  })
+                                }
                               >
                                 <UserIcon /> Make user
                               </DropdownMenuItem>
                             )}
                             {user.role !== "ADMIN" && (
                               <DropdownMenuItem
-                                onSelect={() => roleMutation.mutate({ id: user.id, next: "ADMIN" })}
+                                onSelect={() =>
+                                  roleMutation.mutate({
+                                    id: user.id,
+                                    next: "ADMIN",
+                                  })
+                                }
                               >
                                 <ShieldCheckIcon /> Make admin
                               </DropdownMenuItem>
@@ -241,7 +278,10 @@ export const UsersPage = (): JSX.Element => {
                             {isSuperAdmin && user.role !== "SUPER_ADMIN" && (
                               <DropdownMenuItem
                                 onSelect={() =>
-                                  roleMutation.mutate({ id: user.id, next: "SUPER_ADMIN" })
+                                  roleMutation.mutate({
+                                    id: user.id,
+                                    next: "SUPER_ADMIN",
+                                  })
                                 }
                               >
                                 <ShieldCheckIcon /> Make super admin
@@ -250,11 +290,14 @@ export const UsersPage = (): JSX.Element => {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className={
-                                user.isActive ? "text-red-600 dark:text-red-400" : undefined
+                                user.isActive
+                                  ? "text-red-600 dark:text-red-400"
+                                  : undefined
                               }
                               onSelect={() => setStatusTarget(user)}
                             >
-                              <NoSymbolIcon /> {user.isActive ? "Deactivate" : "Reactivate"}
+                              <NoSymbolIcon />{" "}
+                              {user.isActive ? "Deactivate" : "Reactivate"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -283,7 +326,10 @@ export const UsersPage = (): JSX.Element => {
         loading={statusMutation.isPending}
         onConfirm={() =>
           statusTarget &&
-          statusMutation.mutate({ id: statusTarget.id, isActive: !statusTarget.isActive })
+          statusMutation.mutate({
+            id: statusTarget.id,
+            isActive: !statusTarget.isActive,
+          })
         }
       />
     </div>

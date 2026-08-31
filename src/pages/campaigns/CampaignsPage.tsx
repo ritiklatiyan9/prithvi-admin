@@ -12,7 +12,10 @@ import {
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { FiltersBar } from "@/components/shared/FiltersBar";
-import { ExportButton, type ExportColumn } from "@/components/shared/ExportButton";
+import {
+  ExportButton,
+  type ExportColumn,
+} from "@/components/shared/ExportButton";
 import { CampaignStatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TableSkeleton } from "@/components/shared/TableSkeleton";
@@ -56,9 +59,21 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { key: "status", label: "Status" },
   { key: "rewardAmount", label: "Reward coins" },
   { key: "budget", label: "Budget coins" },
-  { key: "startsAt", label: "Starts", format: (v) => formatDate(v as string | null) },
-  { key: "endsAt", label: "Ends", format: (v) => formatDate(v as string | null) },
-  { key: "createdAt", label: "Created", format: (v) => formatDate(v as string | null) },
+  {
+    key: "startsAt",
+    label: "Starts",
+    format: (v) => formatDate(v as string | null),
+  },
+  {
+    key: "endsAt",
+    label: "Ends",
+    format: (v) => formatDate(v as string | null),
+  },
+  {
+    key: "createdAt",
+    label: "Created",
+    format: (v) => formatDate(v as string | null),
+  },
 ];
 
 export const CampaignsPage = (): JSX.Element => {
@@ -71,12 +86,15 @@ export const CampaignsPage = (): JSX.Element => {
 
   const { data, isLoading } = useQuery({
     queryKey: ["campaigns", { page, status }],
-    queryFn: () =>
-      campaignsService.list({
-        page,
-        limit: PAGE_SIZE,
-        status: status === "ALL" ? undefined : status,
-      }),
+    queryFn: ({ signal }) =>
+      campaignsService.list(
+        {
+          page,
+          limit: PAGE_SIZE,
+          status: status === "ALL" ? undefined : status,
+        },
+        signal,
+      ),
   });
 
   // The backend has no campaign text search; filter the current page client-side.
@@ -84,7 +102,9 @@ export const CampaignsPage = (): JSX.Element => {
     if (!data) return [];
     const term = search.trim().toLowerCase();
     return term
-      ? data.items.filter((campaign) => campaign.title.toLowerCase().includes(term))
+      ? data.items.filter((campaign) =>
+          campaign.title.toLowerCase().includes(term),
+        )
       : data.items;
   }, [data, search]);
 
@@ -121,7 +141,11 @@ export const CampaignsPage = (): JSX.Element => {
       />
 
       <FiltersBar
-        search={{ value: search, onChange: setSearch, placeholder: "Search by title…" }}
+        search={{
+          value: search,
+          onChange: setSearch,
+          placeholder: "Search by title…",
+        }}
         selects={[
           {
             key: "status",
@@ -172,7 +196,9 @@ export const CampaignsPage = (): JSX.Element => {
                 <TableHead>Campaign</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Reward</TableHead>
-                <TableHead className="hidden text-right md:table-cell">Budget</TableHead>
+                <TableHead className="hidden text-right md:table-cell">
+                  Budget
+                </TableHead>
                 <TableHead className="hidden lg:table-cell">Schedule</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
@@ -181,7 +207,9 @@ export const CampaignsPage = (): JSX.Element => {
               {visible.map((campaign) => (
                 <TableRow key={campaign.id}>
                   <TableCell>
-                    <p className="max-w-64 truncate font-medium">{campaign.title}</p>
+                    <p className="max-w-64 truncate font-medium">
+                      {campaign.title}
+                    </p>
                     <p className="max-w-64 truncate text-xs text-muted-foreground">
                       {campaign.description}
                     </p>
@@ -193,10 +221,15 @@ export const CampaignsPage = (): JSX.Element => {
                     <Coins value={campaign.rewardAmount} />
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums text-muted-foreground md:table-cell">
-                    {campaign.budget !== null ? <Coins value={campaign.budget} /> : "—"}
+                    {campaign.budget !== null ? (
+                      <Coins value={campaign.budget} />
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
-                    {formatDate(campaign.startsAt)} → {formatDate(campaign.endsAt)}
+                    {formatDate(campaign.startsAt)} →{" "}
+                    {formatDate(campaign.endsAt)}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -209,10 +242,14 @@ export const CampaignsPage = (): JSX.Element => {
                         <DropdownMenuItem onSelect={() => openEdit(campaign)}>
                           <PencilSquareIcon /> Edit
                         </DropdownMenuItem>
-                        {(campaign.status === "DRAFT" || campaign.status === "PAUSED") && (
+                        {(campaign.status === "DRAFT" ||
+                          campaign.status === "PAUSED") && (
                           <DropdownMenuItem
                             onSelect={() =>
-                              statusMutation.mutate({ id: campaign.id, next: "ACTIVE" })
+                              statusMutation.mutate({
+                                id: campaign.id,
+                                next: "ACTIVE",
+                              })
                             }
                           >
                             <PlayIcon /> Activate
@@ -221,17 +258,24 @@ export const CampaignsPage = (): JSX.Element => {
                         {campaign.status === "ACTIVE" && (
                           <DropdownMenuItem
                             onSelect={() =>
-                              statusMutation.mutate({ id: campaign.id, next: "PAUSED" })
+                              statusMutation.mutate({
+                                id: campaign.id,
+                                next: "PAUSED",
+                              })
                             }
                           >
                             <PauseIcon /> Pause
                           </DropdownMenuItem>
                         )}
-                        {(campaign.status === "ACTIVE" || campaign.status === "PAUSED") && (
+                        {(campaign.status === "ACTIVE" ||
+                          campaign.status === "PAUSED") && (
                           <DropdownMenuItem
                             className="text-red-600 dark:text-red-400"
                             onSelect={() =>
-                              statusMutation.mutate({ id: campaign.id, next: "ENDED" })
+                              statusMutation.mutate({
+                                id: campaign.id,
+                                next: "ENDED",
+                              })
                             }
                           >
                             <StopIcon /> End campaign
@@ -248,7 +292,11 @@ export const CampaignsPage = (): JSX.Element => {
         {data && <Pagination meta={data.meta} onPageChange={setPage} />}
       </Card>
 
-      <CampaignFormDialog open={formOpen} onOpenChange={setFormOpen} campaign={editing} />
+      <CampaignFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        campaign={editing}
+      />
     </div>
   );
 };

@@ -168,6 +168,9 @@ export interface FeedbackPageInput {
 
 export type OfferDifficulty = "EASY" | "MEDIUM" | "HARD";
 
+/** What a user who completed the offer (APPROVED submission) sees in the app. */
+export type CompletedBehavior = "SHOW" | "HIDE" | "SHOW_COMPLETED";
+
 export interface HotOffer {
   id: string;
   slug: string;
@@ -189,6 +192,7 @@ export interface HotOffer {
   expiresAt: string | null;
   priority: number;
   status: ContentStatus;
+  completedBehavior: CompletedBehavior;
   category: { id: string; slug: string; title: string };
   createdAt: string;
 }
@@ -239,6 +243,7 @@ export interface HotOfferInput {
   maxUsers?: number | null;
   maxRewards?: number | null;
   dailyLimit?: number | null;
+  completedBehavior?: CompletedBehavior;
   priority: number;
   status: ContentStatus;
 }
@@ -308,4 +313,10 @@ export interface AdminStats {
   pendingClaims: number;
   approvedClaims: number;
   totalWalletBalance: number;
+  pendingSubmissions: number;
+  pendingRedemptions: number;
+  coinsInPendingRedemptions: number;
+  fulfilledRedemptions: number;
+  pendingMissionCompletions: number;
+  totalReferrals: number;
 }

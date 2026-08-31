@@ -9,9 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { settingsService, type RewardSetting } from "@/services/settings.service";
+import {
+  settingsService,
+  type RewardSetting,
+} from "@/services/settings.service";
 import { apiErrorMessage } from "@/services/api-client";
 import { useAuthStore } from "@/store/auth.store";
+
+const LEGACY_ROULETTE_PROBABILITY_KEY = "game.roulette.probabilityMode";
 
 /** Reward-system configuration, grouped by category. SUPER_ADMIN edits. */
 export const RewardSettings = (): JSX.Element => {
@@ -29,22 +34,31 @@ export const RewardSettings = (): JSX.Element => {
     if (data) setDraft(Object.fromEntries(data.map((s) => [s.key, s.value])));
   }, [data]);
 
+  const editableSettings = useMemo(
+    () =>
+      (data ?? []).filter(
+        (setting) => setting.key !== LEGACY_ROULETTE_PROBABILITY_KEY,
+      ),
+    [data],
+  );
+
   const grouped = useMemo(() => {
     const map = new Map<string, RewardSetting[]>();
-    for (const setting of data ?? []) {
+    for (const setting of editableSettings) {
       const list = map.get(setting.category) ?? [];
       list.push(setting);
       map.set(setting.category, list);
     }
     return [...map.entries()];
-  }, [data]);
+  }, [editableSettings]);
 
   const dirty = useMemo(() => {
-    if (!data) return {};
     return Object.fromEntries(
-      data.filter((s) => draft[s.key] !== s.value).map((s) => [s.key, draft[s.key]]),
+      editableSettings
+        .filter((setting) => draft[setting.key] !== setting.value)
+        .map((setting) => [setting.key, draft[setting.key]]),
     );
-  }, [data, draft]);
+  }, [editableSettings, draft]);
   const dirtyCount = Object.keys(dirty).length;
 
   const save = useMutation({
@@ -65,8 +79,15 @@ export const RewardSettings = (): JSX.Element => {
         description="Configure withdrawals, fraud thresholds and submission rules."
         actions={
           canEdit ? (
-            <Button onClick={() => save.mutate()} disabled={dirtyCount === 0 || save.isPending}>
-              {save.isPending ? "Saving…" : dirtyCount > 0 ? `Save ${dirtyCount} change(s)` : "Saved"}
+            <Button
+              onClick={() => save.mutate()}
+              disabled={dirtyCount === 0 || save.isPending}
+            >
+              {save.isPending
+                ? "Saving…"
+                : dirtyCount > 0
+                  ? `Save ${dirtyCount} change(s)`
+                  : "Saved"}
             </Button>
           ) : undefined
         }
@@ -86,9 +107,13 @@ export const RewardSettings = (): JSX.Element => {
                     <Label htmlFor={setting.key} className="font-medium">
                       {setting.label}
                     </Label>
-                    {setting.isDefault && <Badge variant="outline">default</Badge>}
+                    {setting.isDefault && (
+                      <Badge variant="outline">default</Badge>
+                    )}
                   </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{setting.description}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {setting.description}
+                  </p>
                 </div>
                 <div className="shrink-0">
                   {setting.type === "BOOLEAN" ? (
@@ -97,7 +122,10 @@ export const RewardSettings = (): JSX.Element => {
                       checked={draft[setting.key] === "true"}
                       disabled={!canEdit}
                       onCheckedChange={(checked) =>
-                        setDraft((d) => ({ ...d, [setting.key]: checked ? "true" : "false" }))
+                        setDraft((d) => ({
+                          ...d,
+                          [setting.key]: checked ? "true" : "false",
+                        }))
                       }
                     />
                   ) : (
@@ -108,7 +136,10 @@ export const RewardSettings = (): JSX.Element => {
                       value={draft[setting.key] ?? ""}
                       disabled={!canEdit}
                       onChange={(event) =>
-                        setDraft((d) => ({ ...d, [setting.key]: event.target.value }))
+                        setDraft((d) => ({
+                          ...d,
+                          [setting.key]: event.target.value,
+                        }))
                       }
                     />
                   )}
